@@ -1,5 +1,5 @@
 #
-# Copyright 2020-2022 Picovoice Inc.
+# Copyright 2020-2023 Picovoice Inc.
 #
 # You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
 # file accompanying this source.
@@ -9,6 +9,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+import json
 import logging
 import os
 import platform
@@ -27,7 +28,8 @@ def _pv_linux_machine(machine):
     elif machine in ['armv7l', 'armv6l']:
         arch_info = ''
     else:
-        raise NotImplementedError("Unsupported CPU architecture: '%s'" % machine)
+        raise NotImplementedError(
+            "Unsupported CPU architecture: '%s'" % machine)
 
     cpu_info = ''
     try:
@@ -35,20 +37,17 @@ def _pv_linux_machine(machine):
         cpu_part_list = [x for x in cpu_info.split('\n') if 'CPU part' in x]
         cpu_part = cpu_part_list[0].split(' ')[-1].lower()
     except Exception as error:
-        raise RuntimeError("Failed to identify the CPU with '%s'\nCPU info: %s" % (error, cpu_info))
+        raise RuntimeError(
+            "Failed to identify the CPU with '%s'\nCPU info: %s" % (error, cpu_info))
 
     if '0xb76' == cpu_part:
         return 'arm11' + arch_info
-    elif '0xc07' == cpu_part:
-        return 'cortex-a7' + arch_info
     elif '0xd03' == cpu_part:
         return 'cortex-a53' + arch_info
-    elif '0xd07' == cpu_part:
-        return 'cortex-a57' + arch_info
     elif '0xd08' == cpu_part:
         return 'cortex-a72' + arch_info
-    elif '0xc08' == cpu_part:
-        return 'beaglebone' + arch_info
+    elif "0xd0b" == cpu_part:
+        return "cortex-a76" + arch_info
     elif machine == 'armv7l':
         log.warning(
             'WARNING: Please be advised that this device (CPU part = %s) is not officially supported by Picovoice. '
@@ -73,8 +72,14 @@ def _pv_platform():
 
 _PV_SYSTEM, _PV_MACHINE = _pv_platform()
 
-_RASPBERRY_PI_MACHINES = {'arm11', 'cortex-a7', 'cortex-a53', 'cortex-a72', 'cortex-a53-aarch64', 'cortex-a72-aarch64'}
-_JETSON_MACHINES = {'cortex-a57-aarch64'}
+_RASPBERRY_PI_MACHINES = {
+    "arm11",
+    "cortex-a53",
+    "cortex-a72",
+    "cortex-a76",
+    "cortex-a53-aarch64",
+    "cortex-a72-aarch64",
+    "cortex-a76-aarch64"}
 
 
 def pv_model_path(relative):
@@ -87,12 +92,8 @@ def pv_keyword_files_subdir():
     elif _PV_SYSTEM == 'Linux':
         if _PV_MACHINE == 'x86_64':
             return 'linux'
-        elif _PV_MACHINE in _JETSON_MACHINES:
-            return 'jetson'
         elif _PV_MACHINE in _RASPBERRY_PI_MACHINES:
             return 'raspberry-pi'
-        elif _PV_MACHINE == 'beaglebone':
-            return 'beaglebone'
     elif _PV_SYSTEM == 'Windows':
         return 'windows'
 
@@ -108,7 +109,8 @@ def __append_language(s, language):
 def context_path(context, language):
     system = platform.system()
 
-    contexts_root = __append_language('../../resources/rhino/resources/contexts', language)
+    contexts_root = __append_language(
+        '../../resources/rhino/resources/contexts', language)
 
     if system == 'Darwin':
         return os.path.join(os.path.dirname(__file__), contexts_root, 'mac', '%s_mac.rhn' % context)
@@ -118,21 +120,18 @@ def context_path(context, language):
         else:
             cpu_info = ''
             try:
-                cpu_info = subprocess.check_output(['cat', '/proc/cpuinfo']).decode()
-                cpu_part_list = [x for x in cpu_info.split('\n') if 'CPU part' in x]
+                cpu_info = subprocess.check_output(
+                    ['cat', '/proc/cpuinfo']).decode()
+                cpu_part_list = [x for x in cpu_info.split(
+                    '\n') if 'CPU part' in x]
                 cpu_part = cpu_part_list[0].split(' ')[-1].lower()
             except Exception as error:
-                raise RuntimeError("Failed to identify the CPU with '%s'\nCPU info: %s" % (error, cpu_info))
+                raise RuntimeError(
+                    "Failed to identify the CPU with '%s'\nCPU info: %s" % (error, cpu_info))
 
-            if '0xb76' == cpu_part or '0xc07' == cpu_part or '0xd03' == cpu_part or '0xd08' == cpu_part:
+            if cpu_part in ('0xb76', '0xd03', '0xd08', '0xd0b'):
                 return os.path.join(os.path.dirname(__file__),
                                     contexts_root, 'raspberry-pi', '%s_raspberry-pi.rhn' % context)
-            elif '0xd07' == cpu_part:
-                return os.path.join(os.path.dirname(__file__),
-                                    contexts_root, 'jetson', '%s_jetson.rhn' % context)
-            elif '0xc08' == cpu_part:
-                return os.path.join(os.path.dirname(__file__),
-                                    contexts_root, 'beaglebone', '%s_beaglebone.rhn' % context)
             else:
                 raise NotImplementedError("Unsupported CPU: '%s'." % cpu_part)
     elif system == 'Windows':
@@ -145,11 +144,12 @@ def pv_keyword_paths_by_language(language):
     keyword_files_root = __append_language('resources/keyword_files', language)
     relative = '../../resources/porcupine'
     keyword_files_dir = \
-        os.path.join(os.path.dirname(__file__), relative, keyword_files_root, pv_keyword_files_subdir())
+        os.path.join(os.path.dirname(__file__), relative,
+                     keyword_files_root, pv_keyword_files_subdir())
 
     res = dict()
     for x in os.listdir(keyword_files_dir):
-        res[x.rsplit('_')[0]] = os.path.join(keyword_files_dir, x)
+        res[x.rsplit('_', 1)[0]] = os.path.join(keyword_files_dir, x)
 
     return res
 
@@ -161,6 +161,28 @@ def pv_rhino_model_path_by_language(language):
 
 
 def pv_porcupine_model_path_by_language(language):
-    model_path_subdir = __append_language('lib/common/porcupine_params', language)
+    model_path_subdir = __append_language(
+        'lib/common/porcupine_params', language)
     model_path_subdir = '%s.pv' % model_path_subdir
     return os.path.join(os.path.dirname(__file__), '../../resources/porcupine', model_path_subdir)
+
+
+def load_test_data():
+    data_file_path = os.path.join(os.path.dirname(
+        __file__), "../../resources/.test/test_data.json")
+    with open(data_file_path, encoding="utf8") as data_file:
+        json_test_data = data_file.read()
+    test_data = json.loads(json_test_data)['tests']
+
+    test_parameters = [
+        (
+            t['language'],
+            t['wakeword'],
+            t['context_name'],
+            t['audio_file'],
+            t['inference']['intent'],
+            t['inference']['slots']
+        )
+        for t in test_data['parameters']]
+
+    return test_parameters

@@ -4,16 +4,34 @@ import { Subscription } from 'rxjs';
 import { PicovoiceService } from '@picovoice/picovoice-angular';
 import { PorcupineDetection, RhinoInference } from '@picovoice/picovoice-web';
 
+// @ts-ignore
+import picovoiceModels from '../lib/picovoiceModels';
+
+// @ts-ignore
+import porcupineWakeWord from '../lib/porcupineWakeWord';
+
+// @ts-ignore
+import rhinoContext from '../lib/rhinoContext';
+
+const [porcupineModel, rhinoModel] = picovoiceModels;
+
 @Component({
   selector: 'app-voice-widget',
   templateUrl: './voice_widget.component.html',
   styleUrls: ['./voice_widget.component.scss'],
 })
 export class VoiceWidget implements OnDestroy {
+
+  contextName: string = rhinoContext.publicPath
+    .split("/")
+    .pop()
+    .replace("_wasm.rhn", "");
+  wakeWordName: string = porcupineWakeWord.label;
+
   isLoaded = false;
   isListening = false;
   contextInfo: string | null = null;
-  error: string | null = null;
+  error: Error | null = null;
   wakeWordDetection: PorcupineDetection | null = null;
   inference: RhinoInference | null = null;
   private wakeWordDetectionSubscription: Subscription;
@@ -55,7 +73,7 @@ export class VoiceWidget implements OnDestroy {
       }
     );
     this.errorSubscription = picovoiceService.error$.subscribe(
-      (error: string | null) => {
+      (error: Error | null) => {
         this.error = error;
       }
     );
@@ -82,14 +100,10 @@ export class VoiceWidget implements OnDestroy {
     if (accessKey.length >= 0) {
       await this.picovoiceService.init(
         accessKey,
-        {
-          label: 'Picovoice',
-          publicPath: 'assets/picovoice_wasm.ppn',
-          forceWrite: true,
-        },
-        { publicPath: 'assets/porcupine_params.pv', forceWrite: true },
-        { publicPath: 'assets/clock_wasm.rhn', forceWrite: true },
-        { publicPath: 'assets/rhino_params.pv', forceWrite: true }
+        porcupineWakeWord,
+        porcupineModel,
+        rhinoContext,
+        rhinoModel
       );
       try {
       } catch (error: any) {

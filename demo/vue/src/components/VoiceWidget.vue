@@ -19,29 +19,26 @@
     <h3>Listening: {{ state.isListening }}</h3>
     <h3>Error: {{ state.error !== null }}</h3>
     <p v-if="state.error !== null" class="error-message">
-      {{ state.error.toString() }}
+      {{ state.error.message }}
     </p>
     <button
-      :disabled="!state.isLoaded || state.error || state.isListening"
       v-on:click="start"
+      :disabled="!state.isLoaded || !!state.error || state.isListening"
     >
       Start
     </button>
     <button
-      :disabled="!state.isLoaded || state.error || !state.isListening"
       v-on:click="stop"
+      :disabled="!state.isLoaded || !!state.error || !state.isListening"
     >
       Stop
     </button>
-    <button
-      :disabled="!state.isLoaded || state.error || state.isListening"
-      v-on:click="release"
-    >
+    <button v-on:click="release" :disabled="!state.isLoaded || !!state.error">
       Release
     </button>
     <div v-if="state.isListening">
       <h3 v-if="state.wakeWordDetection !== null">Wake word detected!</h3>
-      <h3 v-else>Listening for 'Picovoice'...</h3>
+      <h3 v-else>Listening for '{{ wakeWordName }}'...</h3>
     </div>
     <div v-if="state.isListening && state.inference !== null">
       <h3>Inference:</h3>
@@ -51,6 +48,7 @@
     </div>
     <hr />
     <div>
+      <h3>Context Name: {{ contextName }}</h3>
       <h3>Context Info:</h3>
       <pre>{{ state.contextInfo }}</pre>
     </div>
@@ -62,10 +60,25 @@ import { defineComponent, onBeforeUnmount, ref } from "vue";
 
 import { usePicovoice } from "@picovoice/picovoice-vue";
 
+// @ts-ignore
+import porcupineWakeWord from "../lib/porcupineWakeWord";
+
+// @ts-ignore
+import rhinoContext from "../lib/rhinoContext";
+
+// @ts-ignore
+import { porcupineModel, rhinoModel } from "../lib/picovoiceModels";
+
 const VoiceWidget = defineComponent({
   name: "VoiceWidget",
   setup() {
     const { state, init, start, stop, release } = usePicovoice();
+
+    const wakeWordName = porcupineWakeWord.label;
+    const contextName = rhinoContext.publicPath
+      .split("/")
+      .pop()
+      .replace("_wasm.rhn", "");
 
     const accessKey = ref("");
 
@@ -76,14 +89,10 @@ const VoiceWidget = defineComponent({
     const initPicovoice = () => {
       init(
         accessKey.value,
-        {
-          label: "Picovoice",
-          publicPath: "picovoice_wasm.ppn",
-          forceWrite: true,
-        },
-        { publicPath: "porcupine_params.pv", forceWrite: true },
-        { publicPath: "clock_wasm.rhn", forceWrite: true },
-        { publicPath: "rhino_params.pv", forceWrite: true }
+        porcupineWakeWord,
+        porcupineModel,
+        rhinoContext,
+        rhinoModel
       );
     };
 
@@ -95,6 +104,8 @@ const VoiceWidget = defineComponent({
       state,
       accessKey,
       updateAccessKey,
+      contextName,
+      wakeWordName,
       initPicovoice,
       start,
       stop,
@@ -131,6 +142,8 @@ button {
   border-left: 5px solid red;
   font-family: monospace;
   font-weight: bold;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
+  white-space: pre;
+  overflow-wrap: break-word;
 }
 </style>

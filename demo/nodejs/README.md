@@ -17,18 +17,16 @@ Picovoice is an end-to-end platform for building voice products on your terms. I
 
 ## Compatibility
 
-These demos run Rhino on **NodeJS 12+** on the following platforms:
+These demos run Rhino on **NodeJS 16+** on the following platforms:
 
 - Windows (x86_64)
 - Linux (x86_64)
 - macOS (x86_64, arm64)
-- Raspberry Pi (2,3,4)
-- NVIDIA Jetson (Nano)
-- BeagleBone
+- Raspberry Pi (3, 4, 5)
 
 ### Web Browsers
 
-These demos and the bindings upon which they are built are for NodeJS and **do not work in a browser**. Looking to run Picovoice in-browser? There are npm packages available for [Web](https://www.npmjs.com/package/@picovoice/picovoice-web-en-worker), and dedicated packages for [Angular](https://www.npmjs.com/package/@picovoice/picovoice-web-angular), [React](https://www.npmjs.com/package/@picovoice/picovoice-web-react), and [Vue](https://www.npmjs.com/package/@picovoice/picovoice-web-vue).
+These demos and the bindings upon which they are built are for NodeJS and **do not work in a browser**. Looking to run Picovoice in-browser? There are npm packages available for [Web](https://www.npmjs.com/package/@picovoice/picovoice-web), and dedicated packages for [Angular](https://www.npmjs.com/package/@picovoice/picovoice-angular), [React](https://www.npmjs.com/package/@picovoice/picovoice-react), and [Vue](https://www.npmjs.com/package/@picovoice/picovoice-vue).
 
 ## AccessKey
 
@@ -54,7 +52,7 @@ npm install -g @picovoice/picovoice-node-demo
 
 Here is an example which will understand commands from the "Smart Lighting" demo from the [Rhino GitHub repository](https://github.com/Picovoice/rhino/blob/master/resources/contexts/) (note that context files are platform-dependent; choose the appropriate one for the platform you are using; this demo uses the "mac" version)
 
-Using the 'global' install methods above should add `pv-mic-demo` to your system path, which we can use to run the mic demo. 
+Using the 'global' install methods above should add `pv-mic-demo` to your system path, which we can use to run the mic demo.
 
 Use `pv-mic-demo` to run the mic demo. First select an input audio device to start recording audio and provide your Picovoice AccessKey with `--access_key`.
 
@@ -70,7 +68,7 @@ index: 1, device name: MacBook Air Microphone
 ```
 
 Specify the input audio device with `--audio_device_index` (this may be empty if you
-wish to use system default microphone). In this example we will use USB Audio Device.  
+wish to use system default microphone). In this example we will use USB Audio Device.
 
 Specify the Wake Word (.ppn) with `--keyword_file_path` and the Speech-to-Intent context (.rhn file) with `--context_file_path`.
 
@@ -234,7 +232,7 @@ Files generated with the Picovoice Console carry restrictions including (but not
 
 If desired, you may override the Porcupine and Rhino model and dynamic libraries by specifying their absolute paths with `--porcupine_model_file_path` and `--porcupine_library_file_path`, respectively and the Rhino model and dynamic libraries with `--rhino_model_file_path` and `--rhino_library_file_path`. As with keyword and context files, the dynamic libraries are specific to the platform.
 
-e.g. for macOS (x86_64):
+e.g. for macOS (x86_64, arm64):
 
 ```console
 pv-mic-demo \

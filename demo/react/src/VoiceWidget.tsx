@@ -1,32 +1,15 @@
 import { useState } from "react";
 import { usePicovoice } from "@picovoice/picovoice-react";
-import {
-  PorcupineKeyword,
-  PorcupineModel,
-  RhinoContext,
-  RhinoModel,
-} from "@picovoice/picovoice-web";
+
+import picovoiceModels from "./lib/picovoiceModels";
+import porcupineWakeWord from "./lib/porcupineWakeWord";
+import rhinoContext from "./lib/rhinoContext";
+
+const [porcupineModel, rhinoModel] = picovoiceModels;
 
 export default function VoiceWidget() {
   const [inputValue, setInputValue] = useState("");
-
-  const porcupineKeyword: PorcupineKeyword = {
-    label: "picovoice",
-    publicPath: "picovoice_wasm.ppn",
-  };
-
-  const porcupineModel: PorcupineModel = {
-    publicPath: "porcupine_params.pv",
-  };
-
-  const rhinoContext: RhinoContext = {
-    publicPath: "clock_wasm.rhn",
-  };
-
-  const rhinoModel: RhinoModel = {
-    publicPath: "rhino_params.pv",
-  };
-
+  const contextName = rhinoContext.publicPath.split("/").pop()?.replace("_wasm.rhn", "");
   const {
     wakeWordDetection,
     inference,
@@ -58,7 +41,7 @@ export default function VoiceWidget() {
           onClick={async () =>
             await init(
               inputValue,
-              porcupineKeyword,
+              porcupineWakeWord,
               porcupineModel,
               rhinoContext,
               rhinoModel
@@ -72,7 +55,7 @@ export default function VoiceWidget() {
       <h3>Listening: {JSON.stringify(isListening)}</h3>
       <h3>Error: {JSON.stringify(error !== null)}</h3>
       {error !== null && (
-        <p className="error-message">{JSON.stringify(error)}</p>
+        <p className="error-message">{error.message}</p>
       )}
       <br />
       <button
@@ -100,7 +83,7 @@ export default function VoiceWidget() {
           {wakeWordDetection ? (
             <h3>Wake word detected!</h3>
           ) : (
-            <h3>Listening for the wake word 'Picovoice'...</h3>
+            <h3>Listening for the wake word '{porcupineWakeWord.label}'...</h3>
           )}
         </>
       )}
@@ -111,7 +94,8 @@ export default function VoiceWidget() {
         </>
       )}
       <hr />
-      <h3>Context info</h3>
+      <h3>Context Name: {contextName}</h3>
+      <h3>Context Info: </h3>
       <pre>{contextInfo}</pre>
     </div>
   );

@@ -17,9 +17,16 @@ Picovoice is:
 - **Cross-Platform:** Design once, deploy anywhere. Build using familiar languages and frameworks.
 
 ## Installation
+<!-- markdown-link-check-disable -->
+The Picovoice iOS binding is available via [Swift Package Manager](https://www.swift.org/documentation/package-manager/) or [CocoaPods](https://cocoapods.org/pods/Picovoice-iOS).
+<!-- markdown-link-check-enable -->
 
-The Picovoice iOS SDK is available via [Cocoapods](https://cocoapods.org). To import it into your iOS project install Cocoapods and add the following line to your Podfile:
+To import the package using SPM, open up your project's Package Dependencies in XCode and add:
+```
+https://github.com/Picovoice/picovoice.git
+```
 
+To import it into your iOS project using CocoaPods, add the following line to your Podfile:
 ```ruby
 pod 'Picovoice-iOS'
 ```
@@ -53,16 +60,18 @@ import Picovoice
 
 let accessKey = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
 
-let manager = PicovoiceManager(
-    accessKey: accessKey,
-    keywordPath: "/path/to/keyword.ppn",
-    onWakeWordDetection: {
-        // logic to execute upon detection of wake word
-    },
-    contextPath: "/path/to/context.rhn",
-    onInference: { inference in
-        // logic to execute upon completion of intent inference
-    })
+do {
+    let picovoiceManager = try PicovoiceManager(
+        accessKey: accessKey,
+        keywordPath: "/path/to/keyword.ppn",
+        onWakeWordDetection: {
+            // logic to execute upon detection of wake word
+        },
+        contextPath: "/path/to/context.rhn",
+        onInference: { inference in
+            // logic to execute upon completion of intent inference
+        })
+} catch { }
 ```
 
 The constructor also allows you to override the default model files and/or the sensitivities of Porcupine and Rhino:
@@ -70,18 +79,20 @@ The constructor also allows you to override the default model files and/or the s
 ```swift
 let accessKey = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
 
-let manager = PicovoiceManager(
-    accessKey: accessKey,
-    keywordPath: "/path/to/keyword.ppn",
-    porcupineSensitivity: 0.4,
-    porcupineModelPath: "/path/to/porcupine/model.pv",
-    onWakeWordDetection: wakeWordCallback,
-    contextPath: "/path/to/context.rhn",
-    rhinoSensitivity: 0.7,
-    rhinoModelPath: "/path/to/rhino/model.pv",
-    onInference: inferenceCallback,
-    endpointDurationSec: 1.5,
-    requireEndpoint: false)
+do {
+    let picovoiceManager = try PicovoiceManager(
+        accessKey: accessKey,
+        keywordPath: "/path/to/keyword.ppn",
+        porcupineSensitivity: 0.4,
+        porcupineModelPath: "/path/to/porcupine/model.pv",
+        onWakeWordDetection: wakeWordCallback,
+        contextPath: "/path/to/context.rhn",
+        rhinoSensitivity: 0.7,
+        rhinoModelPath: "/path/to/rhino/model.pv",
+        onInference: inferenceCallback,
+        endpointDurationSec: 1.5,
+        requireEndpoint: false)
+} catch { }
 ```
 
 Sensitivity is the parameter that enables trading miss rate for the false alarm rate. It is a floating-point number within [0, 1]. A higher sensitivity reduces the miss rate at the cost of increased false alarm rate.
@@ -92,13 +103,15 @@ Once you have instantiated a PicovoiceManager, you can start audio capture and v
 
 ```swift
 do {
-    try manager.start()
+    try picovoiceManager.start()
 } catch { }
 ```
 
 Stop the manager with:
 ```swift
-manager.stop();
+do {
+    try picovoiceManager.stop()
+} catch { }
 ```
 
 ### Low-Level API
@@ -141,12 +154,12 @@ Once initialized, `picovoice` can be used to process incoming audio. The underly
 ```swift
 func getNextAudioFrame() -> [Int16] {
     // .. get audioFrame
-    return audioFrame;
+    return audioFrame
 }
 
 while (true) {
     do {
-        try picovoice.process(getNextAudioFrame());
+        try picovoice.process(getNextAudioFrame())
     } catch { }
 }
 ```
@@ -156,7 +169,7 @@ For `process` to work correctly, the audio data must be in the audio format requ
 Once you're done with an instance of Picovoice you can force it to release its native resources rather than waiting for the garbage collector:
 
 ```swift
-picovoice.delete();
+picovoice.delete()
 ```
 
 ## Custom Model Integration
@@ -177,7 +190,7 @@ In order to detect wake words and run inference in other languages you need to u
 
 ## Running Unit Tests
 
-Copy your `AccessKey` into the `accessKey` variable in [`PicovoiceAppTestUITests.swift`](PicovoiceAppTest/PicovoiceAppTestUITests/PicovoiceAppTestUITests.swift). Open `PicovoiceAppTest.xcworkspace` with XCode and run the tests with `Product > Test`.
+Copy your `AccessKey` into the `accessKey` variable in [`PicovoiceAppTestUITests.swift`](PicovoiceAppTest/PicovoiceAppTestUITests/PicovoiceAppTestUITests.swift). Open [`PicovoiceAppTest.xcodeproj`](PicovoiceAppTest/PicovoiceAppTest.xcodeproj) with XCode and run the tests with `Product > Test`.
 
 ## Demo Apps
 

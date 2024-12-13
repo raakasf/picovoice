@@ -17,7 +17,9 @@ similar to Alexa and Google. But it entirely runs 100% on-device. Picovoice is
 ## Compatibility
 
 - Go 1.16+
-- Runs on Linux (x86_64), macOS (x86_64, arm64), Windows (x86_64), Raspberry Pi, NVIDIA Jetson (Nano) and BeagleBone
+- Runs on Linux (x86_64), macOS (x86_64, arm64), Windows (x86_64), Raspberry Pi (Zero, 3, 4, 5)
+- **Windows**: The Go binding requires `cgo`, which means that you need to install a gcc compiler like [Mingw](http://mingw-w64.org/) to build
+  - Go versions less than `1.20` requires `gcc` version `11` or lower
 
 ## AccessKey
 
@@ -28,7 +30,7 @@ Signup or Login to [Picovoice Console](https://console.picovoice.ai/) to get you
 ## Installation
 
 ```console
-go get github.com/Picovoice/picovoice/sdk/go
+go get github.com/Picovoice/picovoice/sdk/go/v2
 ```
 
 Depending on your setup you also may need to run `go mod tidy` after in order to download transitive dependencies.
@@ -41,7 +43,7 @@ To create an instance of the engine with default parameters, use the `NewPicovoi
 . "github.com/Picovoice/picovoice/sdk/go/v2"
 rhn "github.com/Picovoice/rhino/binding/go/v2"
 
-const accessKey = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
+const accessKey string = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
 
 keywordPath := "/path/to/keyword/file.ppn"
 wakeWordCallback := func(){

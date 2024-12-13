@@ -31,13 +31,13 @@ class MyApp extends StatelessWidget {
           focusColor: picoBlue,
           highlightColor: picoRed,
           textTheme: TextTheme(
-              headline1: TextStyle(
+              displayLarge: TextStyle(
                   fontSize: 60, fontWeight: FontWeight.bold, color: picoBlue),
-              headline2: TextStyle(
+              displayMedium: TextStyle(
                   fontSize: 60, fontWeight: FontWeight.bold, color: picoGrey),
-              subtitle1: TextStyle(fontSize: 23, color: picoGrey),
-              subtitle2: TextStyle(fontSize: 15, color: picoRed),
-              bodyText1: TextStyle(fontSize: 18, color: lightGrey))),
+              titleMedium: TextStyle(fontSize: 23, color: picoGrey),
+              titleSmall: TextStyle(fontSize: 15, color: picoRed),
+              bodyLarge: TextStyle(fontSize: 18, color: lightGrey))),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
@@ -100,9 +100,6 @@ class _MyHomePageState extends State<MyHomePage> {
           _wakeWordCallback, contextAsset, _inferenceCallback,
           processErrorCallback: _errorCallback);
       await _picovoiceManager?.start();
-    } on PicovoiceInvalidArgumentException catch (ex) {
-      _errorCallback(PicovoiceInvalidArgumentException(
-          "${ex.message}\nEnsure your accessKey '$accessKey' is a valid access key."));
     } on PicovoiceActivationException {
       _errorCallback(
           PicovoiceActivationException("AccessKey activation error."));
@@ -126,7 +123,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _inferenceCallback(RhinoInference inference) {
-    print(inference);
     if (inference.isUnderstood!) {
       Map<String, String> slots = inference.slots!;
       if (inference.intent == 'clock') {
@@ -145,10 +141,10 @@ class _MyHomePageState extends State<MyHomePage> {
         _performStopwatchCommand(slots);
       } else if (inference.intent! == 'availableCommands') {
         Fluttertoast.showToast(
-            msg: "Try saying: \n" +
-                " - 'set timer for 5 minutes'\n" +
-                " - 'set alarm for tomorrow at 10:30am'\n" +
-                " - 'start stopwatch'\n" +
+            msg: "Try saying: \n"
+                " - 'set timer for 5 minutes'\n"
+                " - 'set alarm for tomorrow at 10:30am'\n"
+                " - 'start stopwatch'\n"
                 " - 'show me the time'",
             toastLength: Toast.LENGTH_LONG,
             gravity: ToastGravity.TOP,
@@ -159,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     } else {
       Fluttertoast.showToast(
-          msg: "Didn't understand command!\n" +
+          msg: "Didn't understand command!\n"
               "Say 'PicoClock, what can I say?' to see a list of example commands",
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.TOP,
@@ -420,14 +416,14 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           child: Text(
             DateFormat.jm().format(_clockTime),
-            style: Theme.of(context).textTheme.headline1,
+            style: Theme.of(context).textTheme.displayLarge,
           )),
       Container(
           alignment: Alignment.center,
           padding: EdgeInsets.only(top: 100),
           child: Text(
             DateFormat.MMMMEEEEd().format(_clockTime),
-            style: Theme.of(context).textTheme.subtitle1,
+            style: Theme.of(context).textTheme.titleMedium,
           )),
       Container(
           alignment: Alignment.bottomCenter,
@@ -445,7 +441,7 @@ class _MyHomePageState extends State<MyHomePage> {
             _alarmTime == null || _alarmTextInvisible
                 ? ""
                 : DateFormat.MMMEd().add_jm().format(_alarmTime!),
-            style: Theme.of(context).textTheme.subtitle2,
+            style: Theme.of(context).textTheme.titleSmall,
           )),
     ]);
   }
@@ -463,7 +459,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 : _timerStopwatch.isRunning
                     ? timerStr
                     : "00:00:00",
-            style: Theme.of(context).textTheme.headline1,
+            style: Theme.of(context).textTheme.displayLarge,
           )),
     ]);
   }
@@ -481,7 +477,7 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           child: Text(
             stopwatchStr,
-            style: Theme.of(context).textTheme.headline1,
+            style: Theme.of(context).textTheme.displayLarge,
           )),
     ]);
   }
@@ -513,9 +509,6 @@ class _MyHomePageState extends State<MyHomePage> {
       buildStopwatch(context)
     ];
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text(widget.title),
-      // ),
       body: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -540,7 +533,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       Container(
                           margin: EdgeInsets.only(bottom: 10),
                           child: Text("Say 'PicoClock'!",
-                              style: Theme.of(context).textTheme.bodyText1))
+                              style: Theme.of(context).textTheme.bodyLarge))
                     ],
                   )
           ]),

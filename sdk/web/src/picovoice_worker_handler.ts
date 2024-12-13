@@ -1,5 +1,5 @@
 /*
-  Copyright 2022 Picovoice Inc.
+  Copyright 2022-2023 Picovoice Inc.
 
   You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
   file accompanying this source.
@@ -16,7 +16,8 @@ import { PorcupineDetection } from '@picovoice/porcupine-web';
 import { RhinoInference } from '@picovoice/rhino-web';
 
 import { Picovoice } from './picovoice';
-import { PicovoiceWorkerRequest } from './types';
+import { PicovoiceWorkerRequest, PvStatus } from './types';
+import { PicovoiceError } from './picovoice_errors';
 
 function wakeWordCallback(detection: PorcupineDetection): void {
   self.postMessage({
@@ -32,10 +33,11 @@ function inferenceCallback(inference: RhinoInference): void {
   });
 }
 
-function processErrorCallback(error: string): void {
+function processErrorCallback(error: PicovoiceError): void {
   self.postMessage({
     command: 'error',
-    message: error,
+    message: error.message,
+    status: error.status,
   });
 }
 
@@ -52,10 +54,12 @@ self.onmessage = async function (
         self.postMessage({
           command: 'error',
           message: 'Picovoice has already been initialized',
+          status: PvStatus.INVALID_STATE,
         });
         return;
       }
       try {
+        Picovoice.setSdk(event.data.sdk);
         picovoice = await Picovoice._init(
           event.data.accessKey,
           event.data.keywordPath,
@@ -76,11 +80,20 @@ self.onmessage = async function (
           sampleRate: picovoice.sampleRate,
           contextInfo: picovoice.contextInfo,
         });
-      } catch (e: any) {
-        self.postMessage({
-          command: 'error',
-          message: e.message,
-        });
+      } catch (e: any) {        
+        if (e instanceof PicovoiceError) {
+          self.postMessage({
+            command: 'error',
+            status: e.status,
+            message: e.message
+          });
+        } else {
+          self.postMessage({
+            command: 'error',
+            status: PvStatus.RUNTIME_ERROR,
+            shortMessage: e.message
+          });
+        }
       }
       break;
     case 'process':
@@ -88,6 +101,7 @@ self.onmessage = async function (
         self.postMessage({
           command: 'error',
           message: 'Picovoice has not been initialized or has been released',
+          status: PvStatus.INVALID_STATE,
         });
         return;
       }
@@ -98,6 +112,7 @@ self.onmessage = async function (
         self.postMessage({
           command: 'error',
           message: 'Picovoice has not been initialized or has been released',
+          status: PvStatus.INVALID_STATE,
         });
         return;
       }
@@ -121,6 +136,7 @@ self.onmessage = async function (
         command: 'failed',
         // @ts-ignore
         message: `Unrecognized command: ${event.data.command}`,
+        status: PvStatus.RUNTIME_ERROR,
       });
   }
 };

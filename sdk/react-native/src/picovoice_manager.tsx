@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2022 Picovoice Inc.
+// Copyright 2020-2023 Picovoice Inc.
 //
 // You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
 // file accompanying this source.
@@ -11,36 +11,27 @@
 
 import {
   VoiceProcessor,
-  BufferEmitter,
+  VoiceProcessorError,
+  VoiceProcessorErrorListener,
+  VoiceProcessorFrameListener,
 } from '@picovoice/react-native-voice-processor';
 import { Picovoice, WakeWordCallback, InferenceCallback } from './picovoice';
 
-import { EventSubscription, NativeEventEmitter } from 'react-native';
-import type * as PicovoiceErrors from './picovoice_errors';
+import * as PicovoiceErrors from './picovoice_errors';
 
 export type ProcessErrorCallback = (
   error: PicovoiceErrors.PicovoiceError
 ) => void;
 
 class PicovoiceManager {
-  private _voiceProcessor?: VoiceProcessor;
+  private _voiceProcessor: VoiceProcessor;
+  private readonly _errorListener: VoiceProcessorErrorListener;
+  private readonly _frameListener: VoiceProcessorFrameListener;
+
   private _picovoice?: Picovoice;
 
-  private readonly _accessKey: string;
-  private readonly _keywordPath: string;
-  private readonly _wakeWordCallback: WakeWordCallback;
-  private readonly _contextPath: string;
-  private readonly _inferenceCallback: InferenceCallback;
   private readonly _processErrorCallback?: ProcessErrorCallback;
-  private readonly _porcupineSensitivity: number = 0.5;
-  private readonly _rhinoSensitivity: number = 0.5;
-  private readonly _porcupineModelPath?: string;
-  private readonly _rhinoModelPath?: string;
-  private readonly _endpointDurationSec: number = 1.0;
-  private readonly _requireEndpoint: boolean = true;
-
-  private _bufferListener?: EventSubscription;
-  private _bufferEmitter?: NativeEventEmitter;
+  private _isListening: boolean = false;
 
   /**
    * @param accessKey AccessKey obtained from Picovoice Console (https://console.picovoice.ai/.
@@ -70,7 +61,7 @@ class PicovoiceManager {
    * to `false` only if operating in an environment with overlapping speech (e.g. people talking in the background).
    * @returns an instance of the Picovoice end-to-end platform.
    */
-  static create(
+  public static async create(
     accessKey: string,
     keywordPath: string,
     wakeWordCallback: WakeWordCallback,
@@ -83,14 +74,13 @@ class PicovoiceManager {
     rhinoModelPath?: string,
     endpointDurationSec: number = 1.0,
     requireEndpoint: boolean = true
-  ) {
-    return new PicovoiceManager(
+  ): Promise<PicovoiceManager> {
+    let picovoice = await Picovoice.create(
       accessKey,
       keywordPath,
       wakeWordCallback,
       contextPath,
       inferenceCallback,
-      processErrorCallback,
       porcupineSensitivity,
       rhinoSensitivity,
       porcupineModelPath,
@@ -98,79 +88,29 @@ class PicovoiceManager {
       endpointDurationSec,
       requireEndpoint
     );
+    return new PicovoiceManager(picovoice, processErrorCallback);
   }
 
   /**
    * Private constructor
    */
   private constructor(
-    accessKey: string,
-    keywordPath: string,
-    wakeWordCallback: WakeWordCallback,
-    contextPath: string,
-    inferenceCallback: InferenceCallback,
-    processErrorCallback?: ProcessErrorCallback,
-    porcupineSensitivity: number = 0.5,
-    rhinoSensitivity: number = 0.5,
-    porcupineModelPath?: string,
-    rhinoModelPath?: string,
-    endpointDurationSec: number = 1.0,
-    requireEndpoint: boolean = true
+    picovoice: Picovoice,
+    processErrorCallback?: ProcessErrorCallback
   ) {
-    this._accessKey = accessKey;
-    this._keywordPath = keywordPath;
-    this._wakeWordCallback = wakeWordCallback;
-    this._contextPath = contextPath;
-    this._inferenceCallback = inferenceCallback;
+    this._picovoice = picovoice;
     this._processErrorCallback = processErrorCallback;
-    this._porcupineSensitivity = porcupineSensitivity;
-    this._rhinoSensitivity = rhinoSensitivity;
-    this._porcupineModelPath = porcupineModelPath;
-    this._rhinoModelPath = rhinoModelPath;
-    this._endpointDurationSec = endpointDurationSec;
-    this._requireEndpoint = requireEndpoint;
-  }
+    this._voiceProcessor = VoiceProcessor.instance;
 
-  /**
-   * Opens audio input stream and sends audio frames to Picovoice
-   */
-  async start() {
-    if (this._picovoice !== undefined) {
-      return;
-    }
+    this._frameListener = async (frame: number[]) => {
+      if (!this._picovoice || !this._isListening) {
+        return;
+      }
 
-    this._picovoice = await Picovoice.create(
-      this._accessKey,
-      this._keywordPath,
-      this._wakeWordCallback,
-      this._contextPath,
-      this._inferenceCallback,
-      this._porcupineSensitivity,
-      this._rhinoSensitivity,
-      this._porcupineModelPath,
-      this._rhinoModelPath,
-      this._endpointDurationSec,
-      this._requireEndpoint
-    );
-
-    if (this._voiceProcessor === undefined) {
-      this._voiceProcessor = VoiceProcessor.getVoiceProcessor(
-        this._picovoice.frameLength,
-        this._picovoice.sampleRate
-      );
-      this._bufferEmitter = new NativeEventEmitter(BufferEmitter);
-    }
-
-    const bufferProcess = async (buffer: number[]) => {
-      if (this._picovoice === undefined) return;
       try {
-        await this._picovoice.process(buffer);
+        await this._picovoice.process(frame);
       } catch (e) {
-        if (
-          this._processErrorCallback !== undefined &&
-          this._processErrorCallback !== null &&
-          typeof this._processErrorCallback === 'function'
-        ) {
+        if (this._processErrorCallback) {
           this._processErrorCallback(e as PicovoiceErrors.PicovoiceError);
         } else {
           console.error(e);
@@ -178,24 +118,104 @@ class PicovoiceManager {
       }
     };
 
-    this._bufferListener = this._bufferEmitter?.addListener(
-      BufferEmitter.BUFFER_EMITTER_KEY,
-      async (buffer: number[]) => {
-        await bufferProcess(buffer);
+    this._errorListener = (error: VoiceProcessorError) => {
+      if (this._processErrorCallback) {
+        this._processErrorCallback(
+          new PicovoiceErrors.PicovoiceError(error.message)
+        );
+      } else {
+        console.error(error);
       }
-    );
-
-    return this._voiceProcessor.start();
+    };
   }
 
   /**
-   * Closes audio stream
+   * Opens audio input stream and sends audio frames to Picovoice.
    */
-  async stop() {
-    this._bufferListener?.remove();
-    this._picovoice?.delete();
+  public async start(): Promise<void> {
+    if (!this._picovoice) {
+      throw new PicovoiceErrors.PicovoiceInvalidStateError(
+        'Unable to start - resources have been released.'
+      );
+    }
+
+    if (!this._isListening) {
+      if (await this._voiceProcessor.hasRecordAudioPermission()) {
+        this._voiceProcessor.addFrameListener(this._frameListener);
+        this._voiceProcessor.addErrorListener(this._errorListener);
+        try {
+          await this._voiceProcessor.start(
+            this._picovoice.frameLength,
+            this._picovoice.sampleRate
+          );
+          this._isListening = true;
+        } catch (e: any) {
+          throw new PicovoiceErrors.PicovoiceRuntimeError(
+            `Failed to start audio recording: ${e.message}`
+          );
+        }
+      } else {
+        throw new PicovoiceErrors.PicovoiceRuntimeError(
+          'User did not give permission to record audio.'
+        );
+      }
+    }
+  }
+
+  /**
+   * Closes audio stream and resets Picovoice
+   */
+  public async stop(): Promise<void> {
+    if (!this._picovoice) {
+      throw new PicovoiceErrors.PicovoiceInvalidStateError(
+        'Unable to stop - resources have been released.'
+      );
+    }
+    if (this._isListening) {
+      this._voiceProcessor.removeErrorListener(this._errorListener);
+      this._voiceProcessor.removeFrameListener(this._frameListener);
+      if (this._voiceProcessor.numFrameListeners === 0) {
+        try {
+          await this._voiceProcessor.stop();
+        } catch (e: any) {
+          throw new PicovoiceErrors.PicovoiceRuntimeError(
+            `Failed to stop audio recording: ${e.message}`
+          );
+        }
+      }
+      this._isListening = false;
+    }
+
+    await this._picovoice?.reset();
+  }
+
+  /**
+   * Resets the internal state of PicovoiceManager. It can be called to
+   * return to the wake word detection state before an inference has completed.
+   */
+  public async reset(): Promise<void> {
+    if (!this._picovoice) {
+      throw new PicovoiceErrors.PicovoiceInvalidStateError(
+        'Unable to reset - resources have been released.'
+      );
+    }
+
+    await this._picovoice?.reset();
+  }
+
+  /**
+   * Releases native resources that were allocated to PicovoiceManager.
+   */
+  public async delete(): Promise<void> {
+    await this._picovoice?.delete();
     this._picovoice = undefined;
-    return this._voiceProcessor?.stop();
+  }
+
+  /**
+   * @returns the Rhino context source YAML.
+   */
+  public get contextInfo(): string | undefined {
+    return this._picovoice?.contextInfo;
   }
 }
 

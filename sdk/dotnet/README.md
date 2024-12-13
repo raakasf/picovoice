@@ -16,7 +16,7 @@ similar to Alexa and Google. But it entirely runs 100% on-device. Picovoice is
 
 ## Requirements
 
-- .NET 6.0
+- .NET 8.0
 
 ## Compatibility
 
@@ -30,14 +30,12 @@ Platforms compatible with .NET Core 2.0+:
 - macOS (x86_64)
 - Windows (x86_64)
 
-Platforms compatible with .NET Core 3.1+:
+Platforms compatible with .NET Core 3.0+:
 
 - Raspberry Pi:
-  - 2
   - 3 (32 and 64 bit)
   - 4 (32 and 64 bit)
-- NVIDIA Jetson Nano
-- BeagleBone
+  - 5 (32 and 64 bit)
 
 Platform compatible with .NET 6.0+:
 

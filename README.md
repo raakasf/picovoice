@@ -21,7 +21,9 @@
 
 Made in Vancouver, Canada by [Picovoice](https://picovoice.ai)
 
+<!-- markdown-link-check-disable -->
 [![Twitter URL](https://img.shields.io/twitter/url?label=%40AiPicovoice&style=social&url=https%3A%2F%2Ftwitter.com%2FAiPicovoice)](https://twitter.com/AiPicovoice)
+<!-- markdown-link-check-enable -->
 [![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCAdi9sTCXLosG1XeqDwLx7w?label=YouTube&style=social)](https://www.youtube.com/channel/UCAdi9sTCXLosG1XeqDwLx7w)
 
 Picovoice is the end-to-end platform for building voice products on your terms. Unlike Alexa and Google services,
@@ -49,7 +51,7 @@ spoken command:
 - **Accurate:** Resilient to noise and reverberation. Outperforms cloud-based alternatives by wide margins.
 - **Cross-Platform:** Design once, deploy anywhere. Build using familiar languages and frameworks.
   - Arm Cortex-M, STM32, Arduino, and i.MX RT
-  - Raspberry Pi, NVIDIA Jetson Nano, and BeagleBone
+  - Raspberry Pi (Zero, 3, 4, 5)
   - Android and iOS
   - Chrome, Safari, Firefox, and Edge
   - Linux (x86_64), macOS (x86_64, arm64), and Windows (x86_64)
@@ -153,14 +155,14 @@ given wake phrases. An open-source benchmark of Porcupine is available
 [here](https://github.com/Picovoice/wakeword-benchmark). In summary, compared to the best-performing alternative,
 Porcupine's standard model is **5.4 times more accurate**.
 
-![](resources/doc/porcupine-benchmark.png)
+![](resources/.doc/porcupine-benchmark.png)
 
 Picovoice relies on the [Rhino Speech-to-Intent engine](https://github.com/Picovoice/rhino) to directly infer user's
 intent from spoken commands within a given domain of interest (a "context"). An open-source benchmark of Rhino is
 available [here](https://github.com/Picovoice/speech-to-intent-benchmark). Rhino outperforms all major cloud-based
 alternatives with wide margins.
 
-![](resources/doc/rhino-benchmark.png)
+![](resources/.doc/rhino-benchmark.png)
 
 ## Picovoice Console
 
@@ -197,7 +199,7 @@ picovoice_demo_mic \
 --context_path resources/rhino/resources/contexts/${PLATFORM}/smart_lighting_${PLATFORM}.rhn
 ```
 
-Replace `${PLATFORM}` with the platform you are running the demo on (e.g. `raspberry-pi`, `beaglebone`, `linux`, `mac`,
+Replace `${PLATFORM}` with the platform you are running the demo on (e.g. `raspberry-pi`, `linux`, `mac`,
 or `windows`). The microphone demo opens an audio stream from the microphone, detects utterances of a given wake
 phrase, and infers intent from the follow-on spoken command. Once the demo initializes, it prints `[Listening ...]`
 to the console. Then say:
@@ -369,18 +371,25 @@ To browse the demo source go to [demo/unity](demo/unity).
 
 To run the Picovoice demo on Android or iOS with Flutter, you must have the [Flutter SDK](https://flutter.dev/docs/get-started/install) installed on your system. Once installed, you can run `flutter doctor` to determine any other missing requirements for your relevant platform. Once your environment has been set up, launch a simulator or connect an Android/iOS device.
 
-Before launching the app, use the copy_assets.sh script to copy the Picovoice demo assets into the demo project. (**NOTE**: on Windows, Git Bash or another bash shell is required, or you will have to manually copy the context into the project.).
+Run the `prepare_demo` script from [demo/flutter](./demo/flutter/) with a language code to set up the demo in the language of your
+choice (e.g. `de` -> German, `ko` -> Korean). To see a list of available languages, run `prepare_demo` without a language code.
 
-Run the following command from [demo/flutter](demo/flutter) to build and deploy the demo to your device:
+```console
+dart scripts/prepare_demo.dart ${LANGUAGE}
+```
+
+Replace your `AccessKey` in [lib/main.dart](./demo/flutter/lib/main.dart) file:
+
+```dart
+final String accessKey = "{YOUR_ACCESS_KEY_HERE}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
+```
+
+Run the following command from [demo/flutter](./demo/flutter/) to build and deploy the demo to your device:
 ```console
 flutter run
 ```
 
-Once the application has been deployed, press the start button and say:
-
-> Picovoice, turn off the lights in the kitchen.
-
-For the full set of supported commands refer to [demo's readme](demo/flutter/README.md).
+Once the demo app has started, press the start button and utter a command to start inferring context. To see more details about the current context information, press the `Context Info` button on the top right corner in the app.
 
 ### React Native Demos
 To run the React Native Picovoice demo app you'll first need to install yarn and set up your React Native environment. For this, please refer to [React Native's documentation](https://reactnative.dev/docs/environment-setup). Once your environment has been set up, you can run the following commands:
@@ -452,75 +461,83 @@ For more details about the iOS demos and full set of supported commands refer to
 
 #### Vanilla JavaScript and HTML
 
-From [demo/web](demo/web) run the following in the terminal:
+From [demo/web](demo/web) use `yarn` or `npm` to install the dependencies, and the `start` script with a language code
+to start a local web server hosting the demo in the language of your choice (e.g. `pl` -> Polish, `ko` -> Korean).
+To see a list of available languages, run `start` without a language code.
 
 ```console
 yarn
-yarn start
+yarn start ${LANGUAGE}
 ```
 
 (or)
 
 ```console
 npm install
-npm run start
+npm run start ${LANGUAGE}
 ```
 
 Open `http://localhost:5000` in your browser to try the demo.
 
 #### Angular Demos
 
-From [demo/angular](demo/angular) run the following in the terminal:
+From [demo/angular](demo/angular) use `yarn` or `npm` to install the dependencies, and the `start` script with a language code
+to start a local web server hosting the demo in the language of your choice (e.g. `pl` -> Polish, `ko` -> Korean).
+To see a list of available languages, run `start` without a language code.
 
 ```console
 yarn
-yarn start
+yarn start ${LANGUAGE}
 ```
 
 (or)
 
 ```console
 npm install
-npm run start
+npm run start ${LANGUAGE}
 ```
 
 Open `http://localhost:4200` in your browser to try the demo.
 
 #### React Demos
 
-From [demo/react](demo/react) run the following in the terminal:
+From [demo/react](demo/react) use `yarn` or `npm` to install the dependencies, and the `start` script with a language code
+to start a local web server hosting the demo in the language of your choice (e.g. `pl` -> Polish, `ko` -> Korean).
+To see a list of available languages, run `start` without a language code.
 
 ```console
 yarn
-yarn start
+yarn start ${LANGUAGE}
 ```
 
 (or)
 
 ```console
 npm install
-npm run start
+npm run start ${LANGUAGE}
 ```
 
 Open `http://localhost:3000` in your browser to try the demo.
 
 #### Vue Demos
 
-From [demo/vue](demo/vue) run the following in the terminal:
+From [demo/vue](demo/vue) use `yarn` or `npm` to install the dependencies, and the `start` script with a language code
+to start a local web server hosting the demo in the language of your choice (e.g. `pl` -> Polish, `ko` -> Korean).
+To see a list of available languages, run `start` without a language code.
 
 ```console
 yarn
-yarn start
+yarn start ${LANGUAGE}
 ```
 
 (or)
 
 ```console
 npm install
-npm run start
+npm run start ${LANGUAGE}
 ```
 
-Open `http://localhost:8080` in your browser to try the demo.
+The command-line output will provide you with a localhost link and port to open in your browser.
 
 ### Rust Demos
 
@@ -569,7 +586,7 @@ At the root of the repository, build with:
 cmake -S demo/c/. -B demo/c/build && cmake --build demo/c/build --target picovoice_demo_mic
 ```
 
-#### Linux (x86_64), macOS (x86_64), Raspberry Pi, and BeagleBone
+#### Linux (x86_64), macOS (x86_64, arm64), Raspberry Pi
 
 List input audio devices with:
 
@@ -591,7 +608,7 @@ Run the demo using:
 ```
 
 Replace `${LIBRARY_PATH}` with path to appropriate library available under [/sdk/c/lib](sdk/c/lib), `${PLATFORM}` with the
-name of the platform you are running on (`linux`, `raspberry-pi`, `mac`, or `beaglebone`), and `${AUDIO_DEVICE_INDEX}` with
+name of the platform you are running on (`linux`, `raspberry-pi`, or `mac`), and `${AUDIO_DEVICE_INDEX}` with
 the index of your audio device.
 
 #### Windows
@@ -623,7 +640,7 @@ At the root of the repository, build with:
 cmake -S demo/c/. -B demo/c/build && cmake --build demo/c/build --target picovoice_demo_file
 ```
 
-#### Linux (x86_64), macOS (x86_64), Raspberry Pi, and BeagleBone
+#### Linux (x86_64), macOS (x86_64, arm64), Raspberry Pi
 
 Run the demo using:
 
@@ -639,7 +656,7 @@ Run the demo using:
 ```
 
 Replace `${LIBRARY_PATH}` with path to appropriate library available under [sdk/c/lib](sdk/c/lib), `${PLATFORM}` with the
-name of the platform you are running on (`linux`, `raspberry-pi`, `mac`, or `beaglebone`).
+name of the platform you are running on (`linux`, `raspberry-pi`, or `mac`).
 
 #### Windows
 
@@ -737,7 +754,7 @@ and command inference completion events, respectively:
 ```javascript
 const Picovoice = require("@picovoice/picovoice-node");
 
-const accessKey = "${ACCESS_KEY}" // Obtained from the Picovoice Console (https://console.picovoice.ai/)
+const accessKey = "${ACCESS_KEY}"; // Obtained from the Picovoice Console (https://console.picovoice.ai/)
 
 let keywordCallback = function (keyword) {
   console.log(`Wake word detected`);
@@ -850,13 +867,13 @@ The easiest way to create an instance of the engine is with the Picovoice Builde
 ```java
 import ai.picovoice.picovoice.*;
 
-String keywordPath = "/absolute/path/to/keyword.ppn"
+String keywordPath = "/absolute/path/to/keyword.ppn";
 
 final String accessKey = "${ACCESS_KEY}"; // AccessKey obtained from [Picovoice Console](https://console.picovoice.ai/)
 
 PicovoiceWakeWordCallback wakeWordCallback = () -> {..};
 
-String contextPath = "/absolute/path/to/context.rhn"
+String contextPath = "/absolute/path/to/context.rhn";
 
 PicovoiceInferenceCallback inferenceCallback = inference -> {
     // `inference` exposes three getters:
@@ -866,7 +883,7 @@ PicovoiceInferenceCallback inferenceCallback = inference -> {
     // ..
 };
 
-try{
+try {
     Picovoice handle = new Picovoice.Builder()
                     .setAccessKey(accessKey)
                     .setKeywordPath(keywordPath)
@@ -917,18 +934,18 @@ go get github.com/Picovoice/picovoice/sdk/go
 To create an instance of the engine with default parameters, use the `NewPicovoice` function. You must provide a Porcupine keyword file, a wake word detection callback function, a Rhino context file and an inference callback function. You must then make a call to `Init()`.
 
 ```go
-. "github.com/Picovoice/picovoice/sdk/go"
-rhn "github.com/Picovoice/rhino/binding/go"
+. "github.com/Picovoice/picovoice/sdk/go/v2"
+rhn "github.com/Picovoice/rhino/binding/go/v2"
 
-const accessKey = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
+const accessKey string = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
 
 keywordPath := "/path/to/keyword/file.ppn"
-wakeWordCallback := func(){
+wakeWordCallback := func() {
     // let user know wake word detected
 }
 
 contextPath := "/path/to/keyword/file.rhn"
-inferenceCallback := func(inference rhn.RhinoInference){
+inferenceCallback := func(inference rhn.RhinoInference) {
     if inference.IsUnderstood {
             intent := inference.Intent
             slots := inference.Slots
@@ -962,7 +979,7 @@ When instantiated, valid sample rate can be obtained via `SampleRate`. Expected 
 frame is `FrameLength`. The engine accepts 16-bit linearly-encoded PCM and operates on single-channel audio.
 
 ```go
-func getNextFrameAudio() []int16{
+func getNextFrameAudio() []int16 {
     // get audio frame
 }
 
@@ -1089,7 +1106,7 @@ The static constructor `PicovoiceManager.create` will create an instance of a Pi
 import 'package:picovoice/picovoice_manager.dart';
 import 'package:picovoice/picovoice_error.dart';
 
-String accessKey = "{ACCESS_KEY}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
+final String accessKey = "{ACCESS_KEY}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
 
 void createPicovoiceManager() {
   _picovoiceManager = PicovoiceManager.create(
@@ -1130,12 +1147,12 @@ who want to incorporate it into an already existing audio processing pipeline.
 import 'package:picovoice/picovoice_manager.dart';
 import 'package:picovoice/picovoice_error.dart';
 
-String accessKey = "{ACCESS_KEY}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
+final String accessKey = "{ACCESS_KEY}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
 
 void createPicovoice() async {
     double porcupineSensitivity = 0.7;
     double rhinoSensitivity = 0.6;
-    try{
+    try {
         _picovoice = await Picovoice.create(
             accessKey,
             "/path/to/keyword/file.ppn",
@@ -1187,7 +1204,7 @@ audio recording. This class is the quickest way to get started.
 
 The static constructor `PicovoiceManager.create` will create an instance of a PicovoiceManager using a Porcupine keyword file and Rhino context file that you pass to it.
 ```javascript
-const accessKey = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
+const accessKey = "${ACCESS_KEY}"; // obtained from Picovoice Console (https://console.picovoice.ai/)
 
 this._picovoiceManager = PicovoiceManager.create(
     accessKey,
@@ -1220,14 +1237,14 @@ who want to incorporate it into an already existing audio processing pipeline.
 `Picovoice` is created by passing a Porcupine keyword file and Rhino context file to the `create` static constructor. Sensitivity and model files are optional.
 
 ```javascript
-const accessKey = "${ACCESS_KEY}" // obtained from Picovoice Console (https://console.picovoice.ai/)
+const accessKey = "${ACCESS_KEY}"; // obtained from Picovoice Console (https://console.picovoice.ai/)
 
-async createPicovoice(){
-    let porcupineSensitivity = 0.7
-    let rhinoSensitivity = 0.6
-    let requireEndpoint = false
+async createPicovoice() {
+    let porcupineSensitivity = 0.7;
+    let rhinoSensitivity = 0.6;
+    let requireEndpoint = false;
 
-    try{
+    try {
         this._picovoice = await Picovoice.create(
             accessKey,
             '/path/to/keyword/file.ppn',
@@ -1239,7 +1256,7 @@ async createPicovoice(){
             rhinoSensitivity,
             "/path/to/porcupine/model.pv",
             "/path/to/rhino/model.pv",
-            requireEndpoint)
+            requireEndpoint);
     } catch (err) {
         // handle error
     }
@@ -1283,8 +1300,8 @@ inference completion.
 
 ```java
 final String accessKey = "${ACCESS_KEY}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
-final String keywordPath = "/path/to/keyword.ppn" // path relative to 'assets' folder
-final String contextPath = "/path/to/context.rhn" // path relative to 'assets' folder
+final String keywordPath = "/path/to/keyword.ppn"; // path relative to 'assets' folder
+final String contextPath = "/path/to/context.rhn"; // path relative to 'assets' folder
 
 PicovoiceManager manager = new PicovoiceManager.Builder()
     .setAccessKey(accessKey)
@@ -1377,8 +1394,9 @@ picovoice.delete();
 ```
 
 ### iOS
-
+<!-- markdown-link-check-disable -->
 The Picovoice iOS SDK is available via [Cocoapods](https://cocoapods.org). To import it into your iOS project install Cocoapods and add the following line to your Podfile:
+<!-- markdown-link-check-enable -->
 
 ```ruby
 pod 'Picovoice-iOS'
@@ -1943,31 +1961,50 @@ pv_picovoice_delete(handle);
 
 ## Releases
 
+### v3.0.0 - October 26th, 2023
+
+- Improvements to error reporting
+- Upgrades to authorization and authentication system
+- Added `reset()` function to API
+- `PicovoiceManager` classes can now access context information without a call to `start()`
+- Added Farsi support for microcontrollers
+- Various bug fixes and improvements
+- Node min support bumped to 16
+- Unity editor min support bumped to 2021
+- Patches to .NET support
+
+### v2.2.0 - April 12th, 2023
+
+- Added language support for Arabic, Dutch, Hindi, Mandarin, Polish, Russian, Swedish and Vietnamese
+- Added support for .NET 7.0 and fixed support for .NET Standard 2.0
+- iOS minimum support moved to 11.0
+- Improved stability and performance
+
 ### v2.1.0 - January 20th, 2022
 
 - macOS arm64 (Apple Silicon) support added for Java and Unity SDKs
 - Various bug fixes and improvements
 
 ### v2.0.0 - November 25th, 2021
-- Improved accuracy.
-- Added Rust SDK.
-- macOS arm64 support.
-- Added NodeJS support for Windows, NVIDIA Jetson Nano, and BeagleBone.
-- Added .NET support for NVIDIA Jetson Nano and BeagleBone.
-- Runtime optimization.
+- Improved accuracy
+- Added Rust SDK
+- macOS arm64 support
+- Added NodeJS support for Windows, NVIDIA Jetson Nano, and BeagleBone
+- Added .NET support for NVIDIA Jetson Nano and BeagleBone
+- Runtime optimization
 
 ### v1.1.0 - December 2nd, 2020
 
-- Improved accuracy.
-- Runtime optimizations.
-- .NET SDK.
-- Java SDK.
-- React Native SDK.
-- C SDK.
+- Improved accuracy
+- Runtime optimizations
+- .NET SDK
+- Java SDK
+- React Native SDK
+- C SDK
 
 ### v1.0.0 - October 22, 2020
 
-- Initial release.
+- Initial release
 
 ## FAQ
 

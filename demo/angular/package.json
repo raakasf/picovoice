@@ -1,17 +1,12 @@
 {
   "name": "picovoice-angular-demo",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "node scripts/run_demo.js serve",
+    "build": "node scripts/run_demo.js build",
     "watch": "ng build --watch --configuration development",
-    "lint": "ng lint",
-    "cp:ppn-keyword": "cp ../../resources/porcupine/resources/keyword_files/wasm/picovoice_wasm.ppn ./src/assets",
-    "cp:ppn-model": "cp ../../resources/porcupine/lib/common/porcupine_params.pv ./src/assets",
-    "cp:rhn-context": "cp ../../resources/rhino/resources/contexts/wasm/clock_wasm.rhn ./src/assets",
-    "cp:rhn-model": "cp ../../resources/rhino/lib/common/rhino_params.pv ./src/assets",
-    "postinstall": "npm-run-all cp:** --parallel"
+    "lint": "ng lint"
   },
   "private": true,
   "dependencies": {
@@ -23,8 +18,8 @@
     "@angular/platform-browser": "^15.0.3",
     "@angular/platform-browser-dynamic": "^15.0.3",
     "@angular/router": "^15.0.3",
-    "@picovoice/picovoice-angular": "latest",
-    "@picovoice/web-voice-processor": "~4.0.2",
+    "@picovoice/picovoice-angular": "~3.0.3",
+    "@picovoice/web-voice-processor": "~4.0.8",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.11.4"
