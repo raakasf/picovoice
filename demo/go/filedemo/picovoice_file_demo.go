@@ -1,4 +1,4 @@
-// Copyright 2021-2022 Picovoice Inc.
+// Copyright 2021-2023 Picovoice Inc.
 //
 // You may not use this file except in compliance with the license. A copy of the license is
 // located in the "LICENSE" file accompanying this source.
@@ -17,8 +17,8 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/Picovoice/picovoice/sdk/go/v2"
-	rhn "github.com/Picovoice/rhino/binding/go/v2"
+	. "github.com/Picovoice/picovoice/sdk/go/v3"
+	rhn "github.com/Picovoice/rhino/binding/go/v3"
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 )
@@ -176,7 +176,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer p.Delete()
+	defer func() {
+		err := p.Delete()
+		if err != nil {
+			log.Fatalf("Failed to release resources: %s", err)
+		}
+	}()
 
 	buf := &audio.IntBuffer{
 		Format: &audio.Format{

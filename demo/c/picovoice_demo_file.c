@@ -1,5 +1,5 @@
 /*
-    Copyright 2020-2021 Picovoice Inc.
+    Copyright 2020-2023 Picovoice Inc.
 
     You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
     file accompanying this source.
@@ -17,6 +17,9 @@
 #if defined(_WIN32) || defined(_WIN64)
 
 #include <windows.h>
+
+#define UTF8_COMPOSITION_FLAG (0)
+#define NULL_TERMINATED       (-1)
 
 #else
 
@@ -41,7 +44,6 @@ static void *open_dl(const char *dl_path) {
     return dlopen(dl_path, RTLD_NOW);
 
 #endif
-
 }
 
 static void *load_symbol(void *handle, const char *symbol) {
@@ -55,7 +57,6 @@ static void *load_symbol(void *handle, const char *symbol) {
     return dlsym(handle, symbol);
 
 #endif
-
 }
 
 static void close_dl(void *handle) {
@@ -69,7 +70,6 @@ static void close_dl(void *handle) {
     dlclose(handle);
 
 #endif
-
 }
 
 static void print_dl_error(const char *message) {
@@ -83,7 +83,6 @@ static void print_dl_error(const char *message) {
     fprintf(stderr, "%s with '%s'.\n", message, dlerror());
 
 #endif
-
 }
 
 static void wake_word_callback(void) {
@@ -129,6 +128,12 @@ void print_usage(const char *program_name) {
             "Usage : %s -l LIBRARY_PATH -a ACCESS_KEY -w WAV_PATH -k KEYWORD_PATH -c CONTEXT_PATH -p PPN_MODEL_PATH -r RHN_MODEL_PATH "
             "[--porcupine_sensitivity PPN_SENSITIVITY --rhino_sensitivity RHN_SENSITIVITY --endpoint_duration_sec --require_endpoint \"true\"|\"false\" ]\n",
             program_name);
+}
+
+void print_error_message(char **message_stack, int32_t message_stack_depth) {
+    for (int32_t i = 0; i < message_stack_depth; i++) {
+        fprintf(stderr, "  [%d] %s\n", i, message_stack[i]);
+    }
 }
 
 int picovoice_main(int argc, char *argv[]) {
@@ -196,19 +201,19 @@ int picovoice_main(int argc, char *argv[]) {
 
     void *picovoice_library = open_dl(library_path);
     if (!picovoice_library) {
-        fprintf(stderr, "failed to open library.\n");
+        fprintf(stderr, "failed to open library\n");
         exit(1);
     }
 
     const char *(*pv_status_to_string_func)(pv_status_t) = load_symbol(picovoice_library, "pv_status_to_string");
     if (!pv_status_to_string_func) {
-        print_dl_error("failed to load 'pv_status_to_string'");
+        print_dl_error("failed to load `pv_status_to_string`");
         exit(1);
     }
 
     int32_t (*pv_sample_rate_func)() = load_symbol(picovoice_library, "pv_sample_rate");
     if (!pv_sample_rate_func) {
-        print_dl_error("failed to load 'pv_sample_rate'");
+        print_dl_error("failed to load `pv_sample_rate`");
         exit(1);
     }
 
@@ -227,7 +232,7 @@ int picovoice_main(int argc, char *argv[]) {
             pv_picovoice_t **) = NULL;
     pv_picovoice_init_func = load_symbol(picovoice_library, "pv_picovoice_init");
     if (!pv_picovoice_init_func) {
-        print_dl_error("failed to load 'pv_picovoice_init'");
+        print_dl_error("failed to load `pv_picovoice_init`");
         exit(1);
     }
 
@@ -238,7 +243,7 @@ int picovoice_main(int argc, char *argv[]) {
     }
 
     pv_status_t (*pv_picovoice_process_func)(pv_picovoice_t *, const int16_t *) =
-    load_symbol(picovoice_library, "pv_picovoice_process");
+            load_symbol(picovoice_library, "pv_picovoice_process");
     if (!pv_picovoice_process_func) {
         print_dl_error("failed to load 'pv_picovoice_process'");
         exit(1);
@@ -262,9 +267,38 @@ int picovoice_main(int argc, char *argv[]) {
         exit(1);
     }
 
+    pv_status_t (*pv_get_error_stack_func)(char ***, int32_t *) = load_symbol(picovoice_library, "pv_get_error_stack");
+    if (!pv_get_error_stack_func) {
+        print_dl_error("failed to load 'pv_get_error_stack_func'");
+        exit(1);
+    }
+
+    void (*pv_free_error_stack_func)(char **) = load_symbol(picovoice_library, "pv_free_error_stack");
+    if (!pv_free_error_stack_func) {
+        print_dl_error("failed to load 'pv_free_error_stack_func'");
+        exit(1);
+    }
+
+    char **message_stack = NULL;
+    int32_t message_stack_depth = 0;
+    pv_status_t error_status = PV_STATUS_RUNTIME_ERROR;
+
     drwav f;
 
-    if (!drwav_init_file(&f, wav_path, NULL)) {
+#if defined(_WIN32) || defined(_WIN64)
+
+    int wav_path_wchars_num = MultiByteToWideChar(CP_UTF8, UTF8_COMPOSITION_FLAG, wav_path, NULL_TERMINATED, NULL, 0);
+    wchar_t wav_path_w[wav_path_wchars_num];
+    MultiByteToWideChar(CP_UTF8, UTF8_COMPOSITION_FLAG, wav_path, NULL_TERMINATED, wav_path_w, wav_path_wchars_num);
+    const int drwav_init_file_status = drwav_init_file_w(&f, wav_path_w, NULL);
+
+#else
+
+    const int drwav_init_file_status = drwav_init_file(&f, wav_path, NULL);
+
+#endif
+
+    if (!drwav_init_file_status) {
         fprintf(stderr, "failed to open wav file at '%s'.", wav_path);
         exit(1);
     }
@@ -306,6 +340,19 @@ int picovoice_main(int argc, char *argv[]) {
             &handle);
     if (status != PV_STATUS_SUCCESS) {
         fprintf(stderr, "'pv_picovoice_init' failed with '%s'\n", pv_status_to_string_func(status));
+        error_status = pv_get_error_stack_func(&message_stack, &message_stack_depth);
+
+        if (error_status != PV_STATUS_SUCCESS) {
+            fprintf(stderr, ".\nUnable to get Rhino error state with '%s'\n", pv_status_to_string_func(error_status));
+            exit(1);
+        }
+
+        if (message_stack_depth > 0) {
+            fprintf(stderr, ":\n");
+            print_error_message(message_stack, message_stack_depth);
+        } 
+
+        pv_free_error_stack_func(message_stack);
         exit(1);
     }
 
@@ -321,7 +368,20 @@ int picovoice_main(int argc, char *argv[]) {
 
         status = pv_picovoice_process_func(handle, pcm);
         if (status != PV_STATUS_SUCCESS) {
-            fprintf(stderr, "'pv_picovoice_process' failed with '%s'\n", pv_status_to_string_func(status));
+            fprintf(stderr, "'pv_picovoice_process' failed with '%s'", pv_status_to_string_func(status));
+            error_status = pv_get_error_stack_func(&message_stack, &message_stack_depth);
+
+            if (error_status != PV_STATUS_SUCCESS) {
+                fprintf(stderr, ".\nUnable to get Rhino error state with '%s'\n", pv_status_to_string_func(error_status));
+                exit(1);
+            }
+
+            if (message_stack_depth > 0) {
+                fprintf(stderr, ":\n");
+                print_error_message(message_stack, message_stack_depth);
+            } 
+
+            pv_free_error_stack_func(message_stack);
             exit(1);
         }
 
@@ -349,15 +409,12 @@ int main(int argc, char *argv[]) {
 
 #if defined(_WIN32) || defined(_WIN64)
 
-#define UTF8_COMPOSITION_FLAG (0)
-#define NULL_TERMINATED (-1)
-
     LPWSTR *wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (wargv == NULL) {
         fprintf(stderr, "CommandLineToArgvW failed\n");
         exit(1);
     }
-    
+
     char *utf8_argv[argc];
 
     for (int i = 0; i < argc; ++i) {

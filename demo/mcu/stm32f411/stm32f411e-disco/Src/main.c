@@ -23,7 +23,7 @@
 
 #define MEMORY_BUFFER_SIZE (70 * 1024)
 
-static const char* ACCESS_KEY = ... //AccessKey string obtained from Picovoice Console (https://picovoice.ai/console/)
+static const char *ACCESS_KEY = "${ACCESS_KEY}"; //AccessKey string obtained from Picovoice Console (https://picovoice.ai/console/)
 
 static int8_t memory_buffer[MEMORY_BUFFER_SIZE] __attribute__((aligned(16)));
 
@@ -63,7 +63,14 @@ static void inference_callback(pv_inference_t *inference) {
 }
 
 static void error_handler(void) {
-    while(true);
+    printf("\r\n");
+    while (true);
+}
+
+void print_error_message(char **message_stack, int32_t message_stack_depth) {
+    for (int32_t i = 0; i < message_stack_depth; i++) {
+        printf("[%ld] %s\n", i, message_stack[i]);
+    }
 }
 
 int main(void) {
@@ -94,6 +101,10 @@ int main(void) {
 
     pv_picovoice_t *handle = NULL;
 
+    char **message_stack = NULL;
+    int32_t message_stack_depth = 0;
+    pv_status_t error_status;
+
     status = pv_picovoice_init(
             ACCESS_KEY,
             MEMORY_BUFFER_SIZE,
@@ -105,13 +116,33 @@ int main(void) {
             sizeof(CONTEXT_ARRAY),
             CONTEXT_ARRAY,
             RHINO_SENSITIVITY,
-            true,
+            RHINO_ENDPOINT_DURATION_SEC,
+            RHINO_REQUIRE_ENDPOINT,
             inference_callback,
             &handle);
     if (status != PV_STATUS_SUCCESS) {
         printf("Picovoice init failed with '%s'", pv_status_to_string(status));
+
+        error_status = pv_get_error_stack(&message_stack, &message_stack_depth);
+        if (error_status != PV_STATUS_SUCCESS) {
+            printf("Unable to get Picovoice error state with '%s':\n", pv_status_to_string(error_status));
+            error_handler();
+        }
+
+        print_error_message(message_stack, message_stack_depth);
+        pv_free_error_stack(message_stack);
+
         error_handler();
     }
+
+    const char *rhino_context = NULL;
+    status = pv_picovoice_context_info(handle, &rhino_context);
+    if (status != PV_STATUS_SUCCESS) {
+        printf("retrieving context info failed with '%s'", pv_status_to_string(status));
+        error_handler();
+    }
+    printf("Rhino context info: %s\r\n", rhino_context);
+
 
     while (true) {
         const int16_t *buffer = pv_audio_rec_get_new_buffer();
@@ -122,7 +153,6 @@ int main(void) {
                 error_handler();
             }
         }
-
     }
     pv_board_deinit();
     pv_audio_rec_deinit();

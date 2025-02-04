@@ -22,9 +22,7 @@ Picovoice is:
 - Linux (x86_64)
 - macOS (x86_64, arm64)
 - Windows (x86_64)
-- Raspberry Pi 2, Raspberry Pi 3 (32 and 64 bit), Raspberry Pi 4 (32 and 64 bit)
-- Jetson Nano
-- BeagleBone
+- Raspberry Pi 3 (32 and 64 bit), Raspberry Pi 4 (32 and 64 bit), Raspberry Pi 5 (32 and 64 bit)
 
 ## Installation
 
@@ -82,8 +80,8 @@ PicovoiceInferenceCallback inferenceCallback = inference -> {
     // ..
 };
 
-try{
-    Picovoice handle = new Picovoice.Builder()
+try {
+    Picovoice picovoice = new Picovoice.Builder()
                     .setAccessKey(accessKey)
                     .setKeywordPath(keywordPath)
                     .setWakeWordCallback(wakeWordCallback)
@@ -93,7 +91,7 @@ try{
 } catch (PicovoiceException e) { }
 ```
 
-`handle` is an instance of Picovoice runtime engine that detects utterances of wake phrase defined in the file located at
+`picovoice` is an instance of Picovoice runtime engine that detects utterances of wake phrase defined in the file located at
 `keywordPath`. Upon detection of wake word it starts inferring user's intent from the follow-on voice command within
 the context defined by the file located at `contextPath`. `keywordPath` is the absolute path to
 [Porcupine wake word engine](https://github.com/Picovoice/porcupine) keyword file (with `.ppn` suffix).
@@ -101,26 +99,24 @@ the context defined by the file located at `contextPath`. `keywordPath` is the a
 (with `.rhn` suffix). `wakeWordCallback` is invoked upon the detection of wake phrase and `inferenceCallback` is
 invoked upon completion of follow-on voice command inference.
 
-When instantiated, valid sample rate can be obtained via `handle.getSampleRate()`. Expected number of audio samples per
-frame is `handle.getFrameLength()`. The engine accepts 16-bit linearly-encoded PCM and operates on single-channel audio.
+When instantiated, valid sample rate can be obtained via `.getSampleRate()`. Expected number of audio samples per
+frame is `.getFrameLength()`. The engine accepts 16-bit linearly-encoded PCM and operates on single-channel audio.
 
 ```java
-short[] getNextAudioFrame()
-{
+short[] getNextAudioFrame() {
     // .. get audioFrame
     return audioFrame;
 }
 
-while(true)
-{
-    handle.process(getNextAudioFrame());
+while(true) {
+    picovoice.process(getNextAudioFrame());
 }
 ```
 
 Once you're done with Picovoice, ensure you release its resources explicitly:
 
 ```java
-handle.delete();
+picovoice.delete();
 ```
 
 ## Non-English Models

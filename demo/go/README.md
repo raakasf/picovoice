@@ -5,7 +5,8 @@ This Go module contains demos for processing real-time audio (i.e. microphone) a
 ## Requirements
 
 - go 1.16+
-- **Windows**: The demos require `cgo`, which means that a gcc compiler like [Mingw](https://www.mingw-w64.org/) is required.
+- **Windows**: The Go binding requires `cgo`, which means that you need to install a gcc compiler like [Mingw](http://mingw-w64.org/) to build
+  - Go versions less than `1.20` requires `gcc` version `11` or lower
 
 ## Compatibility
 
@@ -14,11 +15,9 @@ This Go module contains demos for processing real-time audio (i.e. microphone) a
 - Windows (x86_64)
 - Raspberry Pi:
   - Zero
-  - 2
   - 3 (32 and 64 bit)
   - 4 (32 and 64 bit)
-- NVIDIA Jetson Nano
-- BeagleBone
+  - 5 (32 and 64 bit)
 
 ## AccessKey
 

@@ -5,19 +5,23 @@ on:
   push:
     branches: [ master ]
     paths:
+      - '.github/workflows/rust.yml'
       - 'sdk/rust/**'
       - '!sdk/rust/README.md'
+      - 'resources/audio_samples/**'
       - 'resources/porcupine'
       - 'resources/rhino'
-      - '.github/workflows/rust.yml'
+      - 'resources/.test/**'
   pull_request:
-    branches: [ master ]
+    branches: [ master, 'v[0-9]+.[0-9]+' ]
     paths:
+      - '.github/workflows/rust.yml'
       - 'sdk/rust/**'
       - '!sdk/rust/README.md'
+      - 'resources/audio_samples/**'
       - 'resources/porcupine'
       - 'resources/rhino'
-      - '.github/workflows/rust.yml'
+      - 'resources/.test/**'
 
 env:
   CARGO_TERM_COLOR: always
@@ -36,7 +40,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -62,17 +66,17 @@ jobs:
 
     strategy:
       matrix:
-        machine: [rpi3-32, rpi3-64, rpi4-32, rpi4-64, jetson]
+        machine: [rpi3-32, rpi3-64, rpi4-32, rpi4-64, rpi5-64]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
     - name: Install stable toolchain
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: stable
         override: true
 
     - name: Rust build

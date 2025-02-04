@@ -5,19 +5,27 @@ on:
   push:
     branches: [ master ]
     paths:
-      - 'sdk/c/**'
-      - '!sdk/c/README.md'
-      - 'demo/c/**'
       - '!demo/c/README.md'
+      - '!sdk/c/README.md'
       - '.github/workflows/c-demos.yml'
+      - 'demo/c/**'
+      - 'resources/.test/**'
+      - 'resources/audio_samples/**'
+      - 'resources/porcupine'
+      - 'resources/rhino'
+      - 'sdk/c/**'
   pull_request:
-    branches: [ master ]
+    branches: [ master, 'v[0-9]+.[0-9]+' ]
     paths:
-      - 'sdk/c/**'
-      - '!sdk/c/README.md'
-      - 'demo/c/**'
       - '!demo/c/README.md'
+      - '!sdk/c/README.md'
       - '.github/workflows/c-demos.yml'
+      - 'demo/c/**'
+      - 'resources/.test/**'
+      - 'resources/audio_samples/**'
+      - 'resources/porcupine'
+      - 'resources/rhino'
+      - 'sdk/c/**'
 
 defaults:
   run:
@@ -32,7 +40,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -47,10 +55,10 @@ jobs:
 
     strategy:
       matrix:
-        machine: [rpi2, rpi3-32, rpi3-64, rpi4-32, rpi4-64, jetson, beaglebone]
+        machine: [rpi3-32, rpi3-64, rpi4-32, rpi4-64, rpi5-64]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -70,20 +78,22 @@ jobs:
         - os: ubuntu-latest
           platform: linux
           arch: x86_64
-          ext: so
         - os: windows-latest
           platform: windows
           arch: amd64
-          ext: dll
         - os: macos-latest
           platform: mac
-          arch: x86_64
-          ext: dylib
+          arch: arm64
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
+
+    - name: Set up Python '3.10'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
     - name: Create build directory
       run: cmake -B ./build
@@ -91,60 +101,19 @@ jobs:
     - name: Build filedemo
       run: cmake --build ./build --target picovoice_demo_file
 
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (en)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.${{ matrix.ext }}
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files/${{ matrix.platform }}/picovoice_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params.pv
-        context_path: ../../resources/rhino/resources/contexts/${{ matrix.platform }}/coffee_maker_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/picovoice-coffee.wav
+    - name: Install dependencies
+      run: pip install -r test/requirements.txt
 
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (de)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.${{ matrix.ext }}
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params_de.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files_de/${{ matrix.platform }}/heuschrecke_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params_de.pv
-        context_path: ../../resources/rhino/resources/contexts_de/${{ matrix.platform }}/beleuchtung_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/heuschrecke-beleuchtung_de.wav
-
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (es)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.${{ matrix.ext }}
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params_es.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files_es/${{ matrix.platform }}/manzana_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params_es.pv
-        context_path: ../../resources/rhino/resources/contexts_es/${{ matrix.platform }}/iluminación_inteligente_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/manzana-luz_es.wav
-
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (fr)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.${{ matrix.ext }}
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params_fr.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files_fr/${{ matrix.platform }}/mon\ chouchou_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params_fr.pv
-        context_path: ../../resources/rhino/resources/contexts_fr/${{ matrix.platform }}/éclairage_intelligent_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/mon-intelligent_fr.wav
+    - name: Test
+      run: python test/test_picovoice_c.py ${{secrets.PV_VALID_ACCESS_KEY}} ${{ matrix.platform }} ${{ matrix.arch }}
 
   build-filedemo-self-hosted:
     runs-on: ${{ matrix.machine }}
 
     strategy:
       matrix:
-        machine: [rpi2, rpi3-32, rpi3-64, rpi4-32, rpi4-64, jetson, beaglebone]
+        machine: [rpi3-32, rpi3-64, rpi4-32, rpi4-64, rpi5-64]
         include:
-        - machine: rpi2
-          platform: raspberry-pi
-          arch: cortex-a7
         - machine: rpi3-32
           platform: raspberry-pi
           arch: cortex-a53
@@ -157,15 +126,12 @@ jobs:
         - machine: rpi4-64
           platform: raspberry-pi
           arch: cortex-a72-aarch64
-        - machine: jetson
-          platform: jetson
-          arch: cortex-a57-aarch64
-        - machine: beaglebone
-          platform: beaglebone
-          arch: ''
+        - machine: rpi5-64
+          platform: raspberry-pi
+          arch: cortex-a76-aarch64
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -175,46 +141,8 @@ jobs:
     - name: Build filedemo
       run: cmake --build ./build --target picovoice_demo_file
 
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (en)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.so
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files/${{ matrix.platform }}/picovoice_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params.pv
-        context_path: ../../resources/rhino/resources/contexts/${{ matrix.platform }}/coffee_maker_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/picovoice-coffee.wav
+    - name: Install dependencies
+      run: pip3 install -r test/requirements.txt
 
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (de)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.so
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params_de.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files_de/${{ matrix.platform }}/heuschrecke_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params_de.pv
-        context_path: ../../resources/rhino/resources/contexts_de/${{ matrix.platform }}/beleuchtung_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/heuschrecke-beleuchtung_de.wav
-
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (es)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.so
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params_es.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files_es/${{ matrix.platform }}/manzana_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params_es.pv
-        context_path: ../../resources/rhino/resources/contexts_es/${{ matrix.platform }}/iluminación_inteligente_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/manzana-luz_es.wav
-
-    - uses: ./.github/actions/c-filedemo
-      name: Run filedemo (fr)
-      with:
-        access_key: ${{ secrets.PV_VALID_ACCESS_KEY }}
-        library_path: ../../sdk/c/lib/${{ matrix.platform }}/${{ matrix.arch }}/libpicovoice.so
-        ppn_model_path: ../../resources/porcupine/lib/common/porcupine_params_fr.pv
-        keyword_path: ../../resources/porcupine/resources/keyword_files_fr/${{ matrix.platform }}/mon\ chouchou_${{ matrix.platform }}.ppn
-        rhn_model_path: ../../resources/rhino/lib/common/rhino_params_fr.pv
-        context_path: ../../resources/rhino/resources/contexts_fr/${{ matrix.platform }}/éclairage_intelligent_${{ matrix.platform }}.rhn
-        audio_path: ../../resources/audio_samples/mon-intelligent_fr.wav
+    - name: Test
+      run: python3 test/test_picovoice_c.py ${{secrets.PV_VALID_ACCESS_KEY}} ${{ matrix.platform }} ${{ matrix.arch }}

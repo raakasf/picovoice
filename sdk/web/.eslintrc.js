@@ -36,6 +36,14 @@ module.exports = {
           }
         ]
       }
+    },
+    {
+      files: ['test/**/*.ts', 'cypress/**/*.ts'],
+      extends: ['plugin:cypress/recommended'],
+      rules: {
+        'no-unused-expressions': 0,
+        'no-unused-vars': 0
+      }
     }
   ],
 
@@ -135,7 +143,7 @@ module.exports = {
     // disallow use of arguments.caller or arguments.callee
     'no-caller': 2,
     // disallow lexical declarations in case clauses
-    'no-case-declarations': 2,
+    'no-case-declarations': 0,
     // disallow division operators explicitly at beginning of regular expression
     'no-div-regex': 2,
     // disallow else after a return in an if
@@ -249,7 +257,7 @@ module.exports = {
     // disallow shadowing of names such as arguments
     'no-shadow-restricted-names': 2,
     // disallow declaration of variables already declared in the outer scope
-    'no-shadow': 2,
+    'no-shadow': 0,
     // disallow use of undefined when initializing variables
     'no-undef-init': 0,
     // disallow use of undeclared variables unless mentioned in a /*global */ block

@@ -1,5 +1,5 @@
 /*
-    Copyright 2020-2022 Picovoice Inc.
+    Copyright 2020-2023 Picovoice Inc.
 
     You may not use this file except in compliance with the license. A copy of the license is
     located in the "LICENSE" file accompanying this source.
@@ -22,28 +22,28 @@ import ai.picovoice.rhino.*;
 /**
  * Android binding for Picovoice end-to-end platform. Picovoice enables building voice experiences
  * similar to Alexa but processes audio entirely on-device (offline).
- * <p>
- * Picovoice detects utterances of a customizable wake word (phrase) within an incoming stream of
+ *
+ * <p>Picovoice detects utterances of a customizable wake word (phrase) within an incoming stream of
  * audio in real-time. After detection of wake word, it begins to infer the user's intent from the
  * follow-on spoken command. Upon detection of wake word and completion of voice command, it invokes
  * user-provided callbacks to signal these events.
- * <p>
- * Picovoice processes incoming audio in consecutive frames. The number of samples per frame is
+ *
+ * <p>Picovoice processes incoming audio in consecutive frames. The number of samples per frame is
  * ${@link #getFrameLength()}. The incoming audio needs to have a sample rate equal to
  * ${@link #getSampleRate()} and be 16-bit linearly-encoded. Picovoice operates on single-channel
  * audio. It uses Porcupine wake word engine for wake word detection and Rhino Speech-to-Intent
  * engine for intent inference.
  */
 public class Picovoice {
-    final private PicovoiceWakeWordCallback wakeWordCallback;
-    final private PicovoiceInferenceCallback inferenceCallback;
+    private final PicovoiceWakeWordCallback wakeWordCallback;
+    private final PicovoiceInferenceCallback inferenceCallback;
     private Porcupine porcupine;
     private Rhino rhino;
     private boolean isWakeWordDetected = false;
     private final Handler callbackHandler = new Handler(Looper.getMainLooper());
 
     /**
-     * Private Constructor
+     * Private Constructor.
      *
      * @param porcupine         An instance of Porcupine wake word engine
      * @param wakeWordCallback  User-defined callback invoked upon detection of the wake phrase.
@@ -59,7 +59,6 @@ public class Picovoice {
             PicovoiceWakeWordCallback wakeWordCallback,
             Rhino rhino,
             PicovoiceInferenceCallback inferenceCallback) {
-
         this.porcupine = porcupine;
         this.wakeWordCallback = wakeWordCallback;
         this.rhino = rhino;
@@ -67,7 +66,7 @@ public class Picovoice {
     }
 
     /**
-     * Releases resources acquired.
+     * Releases resources acquired by Picovoice.
      */
     public void delete() {
         if (porcupine != null) {
@@ -136,12 +135,27 @@ public class Picovoice {
     }
 
     /**
+     * Resets the internal state of Picovoice. It should be called before processing a new stream of audio
+     * or when process was stopped while processing a stream of audio.
+     *
+     * @throws PicovoiceException if reset fails.
+     */
+    public void reset() throws PicovoiceException {
+        try {
+            this.isWakeWordDetected = false;
+            this.rhino.reset();
+        } catch (RhinoException e) {
+            throw mapToPicovoiceException(e);
+        }
+    }
+
+    /**
      * Getter for version.
      *
      * @return Version.
      */
     public String getVersion() {
-        return "2.1.0";
+        return "3.0.0";
     }
 
     /**
@@ -163,7 +177,7 @@ public class Picovoice {
     }
 
     /**
-     * Getter for the Rhino context
+     * Getter for the Rhino context.
      *
      * @return Rhino context
      */
@@ -176,7 +190,7 @@ public class Picovoice {
     }
 
     /**
-     * Getter for the version of Porcupine
+     * Getter for the version of Porcupine.
      *
      * @return Porcupine version
      */
@@ -185,7 +199,7 @@ public class Picovoice {
     }
 
     /**
-     * Getter for the version of Rhino
+     * Getter for the version of Rhino.
      *
      * @return Rhino version
      */
@@ -203,7 +217,8 @@ public class Picovoice {
             return new PicovoiceActivationLimitException(e.getMessage(), e);
         } else if (e instanceof PorcupineActivationRefusedException || e instanceof RhinoActivationRefusedException) {
             return new PicovoiceActivationRefusedException(e.getMessage(), e);
-        } else if (e instanceof PorcupineActivationThrottledException || e instanceof RhinoActivationThrottledException) {
+        } else if (e instanceof PorcupineActivationThrottledException ||
+                e instanceof RhinoActivationThrottledException) {
             return new PicovoiceActivationThrottledException(e.getMessage(), e);
         } else if (e instanceof PorcupineInvalidArgumentException || e instanceof RhinoInvalidArgumentException) {
             return new PicovoiceInvalidArgumentException(e.getMessage(), e);
@@ -230,7 +245,7 @@ public class Picovoice {
     }
 
     /**
-     * Builder for creating an instance of Picovoice with a mixture of default arguments
+     * Builder for creating an instance of Picovoice with a mixture of default arguments.
      */
     public static class Builder {
         private String accessKey = null;
@@ -248,7 +263,7 @@ public class Picovoice {
         private PicovoiceInferenceCallback inferenceCallback = null;
 
         /**
-         * Setter for AccessKey
+         * Setter for AccessKey.
          *
          * @param accessKey AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
          */
@@ -258,7 +273,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for path to Porcupine model file
+         * Setter for path to Porcupine model file.
          *
          * @param porcupineModelPath Absolute path to the file containing Porcupine's model parameters.
          */
@@ -268,7 +283,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for path to Porcupine keyword file
+         * Setter for path to Porcupine keyword file.
          *
          * @param keywordPath Absolute path to Porcupine's keyword model file.
          */
@@ -278,7 +293,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for wake word engine sensitivity
+         * Setter for wake word engine sensitivity.
          *
          * @param porcupineSensitivity Wake word detection sensitivity. It should be a number within
          *                             [0, 1]. A higher sensitivity results in fewer misses at the cost
@@ -290,7 +305,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for wake word detection callback
+         * Setter for wake word detection callback.
          *
          * @param wakeWordCallback User-defined callback invoked upon detection of the wake phrase.
          *                         ${@link PicovoiceWakeWordCallback} defines the interface of the
@@ -302,7 +317,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for path to Rhino model file
+         * Setter for path to Rhino model file.
          *
          * @param rhinoModelPath Absolute path to the file containing Rhino's model parameters.
          */
@@ -312,7 +327,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for path to Rhino context file
+         * Setter for path to Rhino context file.
          *
          * @param contextPath Absolute path to file containing context parameters. A context
          *                    represents the set of expressions (spoken commands), intents, and
@@ -324,7 +339,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for inference engine sensitivity
+         * Setter for inference engine sensitivity.
          *
          * @param rhinoSensitivity Inference sensitivity. It should be a number within [0, 1]. A
          *                         higher sensitivity value results in fewer misses at the cost of
@@ -336,11 +351,12 @@ public class Picovoice {
         }
 
         /**
-         * Setter for endpointDurationSec
+         * Setter for endpointDurationSec.
          *
          * @param endpointDurationSec Endpoint duration in seconds. An endpoint is a chunk of silence at the end of an
-         *                            utterance that marks the end of spoken command. It should be a positive number within [0.5, 5]. A lower endpoint
-         *                            duration reduces delay and improves responsiveness. A higher endpoint duration assures Rhino doesn't return inference
+         *                            utterance that marks the end of spoken command. It should be a positive number
+         *                            within [0.5, 5]. A lower endpoint duration reduces delay and improves
+         *                            responsiveness. A higher endpoint duration assures Rhino doesn't return inference
          *                            pre-emptively in case the user pauses before finishing the request.
          */
         public Picovoice.Builder setEndpointDurationSec(float endpointDurationSec) {
@@ -349,7 +365,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for requireEndpoint
+         * Setter for requireEndpoint.
          *
          * @param requireEndpoint Boolean variable to indicate if Rhino should wait for a chunk of
          *                        silence before finishing inference.
@@ -360,7 +376,7 @@ public class Picovoice {
         }
 
         /**
-         * Setter for intent inference callback
+         * Setter for intent inference callback.
          *
          * @param inferenceCallback User-defined callback invoked upon completion of intent inference.
          *                          #{@link PicovoiceInferenceCallback} defines the interface of the
@@ -387,9 +403,9 @@ public class Picovoice {
                         .setSensitivity(porcupineSensitivity)
                         .build(appContext);
 
-                if (!porcupine.getVersion().startsWith("2.1.")) {
+                if (!porcupine.getVersion().startsWith("3.0.")) {
                     final String message = String.format(
-                            "Expected Porcupine library with version '2.1.x' but received %s",
+                            "Expected Porcupine library with version '3.0.x' but received %s",
                             porcupine.getVersion());
                     throw new PicovoiceRuntimeException(message);
                 }
@@ -403,9 +419,9 @@ public class Picovoice {
                         .setRequireEndpoint(requireEndpoint)
                         .build(appContext);
 
-                if (!rhino.getVersion().startsWith("2.1.")) {
+                if (!rhino.getVersion().startsWith("3.0.")) {
                     final String message = String.format(
-                            "Expected Rhino library with version '2.1.x' but received %s",
+                            "Expected Rhino library with version '3.0.x' but received %s",
                             rhino.getVersion());
                     throw new PicovoiceRuntimeException(message);
                 }

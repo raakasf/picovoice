@@ -5,8 +5,8 @@ cp ../../resources/rhino/lib/android/arm64-v8a/libpv_rhino.so ./Assets/Picovoice
 cp ../../resources/rhino/lib/android/armeabi-v7a/libpv_rhino.so ./Assets/Picovoice/Plugins/android/armeabi-v7a/libpv_rhino.so
 
 echo "Copying iOS lib..."
-cp -R ../../resources/porcupine/lib/ios/PvPorcupine.xcframework/ios-arm64_armv7/PvPorcupine.framework ./Assets/Picovoice/Plugins/ios/PvPorcupine.framework
-cp -R ../../resources/rhino/lib/ios/PvRhino.xcframework/ios-arm64_armv7/PvRhino.framework ./Assets/Picovoice/Plugins/ios/PvRhino.framework
+cp -R ../../resources/porcupine/lib/ios/PvPorcupine.xcframework/ios-arm64/PvPorcupine.framework ./Assets/Picovoice/Plugins/ios
+cp -R ../../resources/rhino/lib/ios/PvRhino.xcframework/ios-arm64/PvRhino.framework ./Assets/Picovoice/Plugins/ios
 
 echo "Copying Linux lib..."
 cp ../../resources/porcupine/lib/linux/x86_64/libpv_porcupine.so ./Assets/Picovoice/Plugins/linux/x86_64/libpv_porcupine.so
@@ -28,13 +28,19 @@ echo "Copying model files..."
 cp ../../resources/porcupine/lib/common/porcupine_params.pv ./Assets/StreamingAssets/porcupine_params.pv
 cp ../../resources/rhino/lib/common/rhino_params.pv ./Assets/StreamingAssets/rhino_params.pv
 
+echo "Copying Voice Processor files..."
+if [ ! -d "./Assets/Picovoice/VoiceProcessor" ]
+then
+    mkdir -p ./Assets/Picovoice/VoiceProcessor
+fi
+cp -rp VoiceProcessor/Assets/UnityVoiceProcessor/*.cs ./Assets/Picovoice/VoiceProcessor
+
 echo "Copying demo files..."
 if [ ! -d "./Assets/Picovoice/Demo" ]
 then
     mkdir -p ./Assets/Picovoice/Demo
 fi
 cp -rp ../../demo/unity/* ./Assets/Picovoice/Demo
-
 
 echo "Copying keyword files..."
 cp -rp ../../resources/porcupine/resources/keyword_files/android/* ./Assets/StreamingAssets/keyword_files/android
