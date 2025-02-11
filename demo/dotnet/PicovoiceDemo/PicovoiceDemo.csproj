@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<Configurations>FileDemo.Debug;FileDemo.Release;MicDemo.Debug;MicDemo.Release</Configurations>
 	</PropertyGroup>
 
@@ -19,7 +18,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PvRecorder" Version="1.1.1" />
-		<PackageReference Include="Picovoice" Version="2.1.6" />
+		<PackageReference Include="PvRecorder" Version="1.2.6" />
+		<PackageReference Include="Picovoice" Version="3.0.4" />
 	</ItemGroup>
 </Project>

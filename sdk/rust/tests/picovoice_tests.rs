@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 Picovoice Inc.
+    Copyright 2021-2023 Picovoice Inc.
 
     You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
     file accompanying this source.
@@ -11,10 +11,11 @@
 
 #[cfg(test)]
 mod tests {
+    use serde_json::Value;
     use std::collections::HashMap;
     use std::convert::TryInto;
     use std::env;
-    use std::fs::File;
+    use std::fs::{read_to_string, File};
     use std::io::BufReader;
     use std::io::Read;
     use std::sync::{Arc, Mutex};
@@ -22,11 +23,24 @@ mod tests {
     use picovoice::porcupine::util::pv_platform;
     use picovoice::{rhino::RhinoInference, Picovoice, PicovoiceBuilder};
 
+    fn load_test_data() -> Value {
+        let test_json_path = format!(
+            "{}{}",
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../resources/.test/test_data.json"
+        );
+        let contents: String =
+            read_to_string(test_json_path).expect("Unable to read test_data.json");
+        let test_json: Value =
+            serde_json::from_str(&contents).expect("Unable to parse test_data.json");
+        test_json
+    }
+
     fn append_lang(path: &str, language: &str) -> String {
         if language == "en" {
             String::from(path)
         } else {
-            format!("{}_{}", path, language)
+            format!("{path}_{language}")
         }
     }
 
@@ -76,6 +90,42 @@ mod tests {
         )
     }
 
+    fn process_file_helper<W: FnMut(), I: FnMut(rhino::RhinoInference)>(
+        picovoice: &mut Picovoice<W, I>,
+        audio_file_name: &str,
+        max_process_count: i32
+    ) {
+        let soundfile_path = format!(
+            "{}{}{}",
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../resources/audio_samples/",
+            audio_file_name
+        );
+
+        let mut reader = BufReader::new(File::open(&soundfile_path).unwrap());
+        reader.seek_relative(44).unwrap(); // Skip .wav header
+
+        let i16_size = std::mem::size_of::<i16>();
+        let frame_length_bytes = picovoice.frame_length() as usize * i16_size;
+
+        let mut frame_buffer = vec![0u8; frame_length_bytes];
+
+        let mut processed = 0;
+        while reader.read_exact(&mut frame_buffer).is_ok() {
+            let frame_samples: Vec<i16> = frame_buffer
+                .chunks(i16_size)
+                .map(|i16_slice| {
+                    i16::from_le_bytes(i16_slice.try_into().expect("Incorrect i16 slice size"))
+                })
+                .collect();
+            picovoice.process(&frame_samples).unwrap();
+            if max_process_count != -1 && processed >= max_process_count {
+                break;
+            }
+            processed += 1;
+        }
+    }
+
     fn run_picovoice_test(
         language: &str,
         keyword: &str,
@@ -114,123 +164,88 @@ mod tests {
         .init()
         .expect("Failed to init Picovoice");
 
-        let soundfile_path = format!(
-            "{}{}{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../resources/audio_samples/",
-            audio_file_name
+        process_file_helper(&mut picovoice, audio_file_name, -1);
+
+        assert_eq!(
+            *is_wake_word_detected.lock().unwrap(),
+            true,
+            "`{language}` wakeword not detected for keyword `{keyword}` context `{context}`"
         );
-
-        let mut reader = BufReader::new(File::open(&soundfile_path).unwrap());
-        reader.seek_relative(44).unwrap(); // Skip .wav header
-
-        let i16_size = std::mem::size_of::<i16>();
-        let frame_length_bytes = picovoice.frame_length() as usize * i16_size;
-
-        let mut frame_buffer = vec![0u8; frame_length_bytes];
-        while let Ok(_) = reader.read_exact(&mut frame_buffer) {
-            let frame_samples: Vec<i16> = frame_buffer
-                .chunks(i16_size)
-                .map(|i16_slice| {
-                    i16::from_le_bytes(i16_slice.try_into().expect("Incorrect i16 slice size"))
-                })
-                .collect();
-            picovoice.process(&frame_samples).unwrap();
-        }
-
-        assert_eq!(*is_wake_word_detected.lock().unwrap(), true);
 
         let locked_inference = detected_inference.lock().unwrap();
         let inference = locked_inference
             .as_ref()
             .expect("Inference callback not called");
-        assert_eq!(inference.is_understood, true);
-        assert_eq!(inference.intent.as_ref().unwrap(), intent);
-        assert_eq!(inference.slots, slots);
+        assert_eq!(
+            inference.is_understood, true,
+            "`{language}` is_understood failed for keyword `{keyword}` context `{context}`"
+        );
+        assert_eq!(
+            inference.intent.as_ref().unwrap(),
+            intent,
+            "`{language}` intent failed for keyword `{keyword}` context `{context}`"
+        );
+        assert_eq!(
+            inference.slots, slots,
+            "`{language}` slots failed for keyword `{keyword}` context `{context}`"
+        );
     }
 
-    macro_rules! picovoice_tests {
-        ($($test_name:ident: $values:expr,)*) => {
-        $(
-            #[test]
-            fn $test_name() {
-                let (language, keyword, context, intent, slots, audio_file_name):
-                    (&str, &str, &str, &str, HashMap<&str, &str>, &str) = $values;
-                let mut string_slots = HashMap::new();
-                for (key, value) in slots {
-                    string_slots.insert(String::from(key), String::from(value));
-                }
-                run_picovoice_test(language, keyword, context, intent, string_slots, audio_file_name);
+    #[test]
+    fn test_reset() {
+        let access_key = env::var("PV_ACCESS_KEY")
+            .expect("Pass the AccessKey in using the PV_ACCESS_KEY env variable");
+
+        let is_wake_word_detected = Arc::new(Mutex::new(false));
+        let is_inference = Arc::new(Mutex::new(false));
+
+        let wake_word_callback = || {
+            if let Ok(mut is_wake_word_detected) = is_wake_word_detected.lock() {
+                *is_wake_word_detected = true;
             }
-        )*
-        }
+        };
+
+        let inference_callback = |_| {
+            if let Ok(mut is_inference) = is_inference.lock() {
+                *is_inference = true;
+            }
+        };
+
+        let mut picovoice = PicovoiceBuilder::new(
+            access_key,
+            keyword_path_by_language("picovoice", "en"),
+            wake_word_callback,
+            context_path_by_language("coffee_maker", "en"),
+            inference_callback,
+        ).init().expect("Failed to init Picovoice");
+
+        process_file_helper(&mut picovoice, "picovoice-coffee.wav", 25);
+        assert_eq!(*is_inference.lock().unwrap(), false);
+
+        let _ = picovoice.reset();
+
+        process_file_helper(&mut picovoice, "picovoice-coffee.wav", 25);
+        assert_eq!(*is_inference.lock().unwrap(), false);
     }
 
-    picovoice_tests! {
-        en: (
-            "en",
-            "picovoice",
-            "coffee_maker",
-            "orderBeverage",
-            HashMap::from([("beverage", "coffee"), ("size", "large")]),
-            "picovoice-coffee.wav",
-        ),
-        es: (
-            "es",
-            "manzana",
-            "iluminación_inteligente",
-            "changeColor",
-            HashMap::from([("location", "habitación"), ("color", "rosado")]),
-            "manzana-luz_es.wav",
-        ),
-        de: (
-            "de",
-            "heuschrecke",
-            "beleuchtung",
-            "changeState",
-            HashMap::from([("state", "aus")]),
-            "heuschrecke-beleuchtung_de.wav",
-        ),
-        fr: (
-            "fr",
-            "mon chouchou",
-            "éclairage_intelligent",
-            "changeColor",
-            HashMap::from([("color", "violet")]),
-            "mon-intelligent_fr.wav",
-        ),
-        it: (
-            "it",
-            "cameriere",
-            "illuminazione",
-            "spegnereLuce",
-            HashMap::from([("luogo", "bagno")]),
-            "cameriere-luce_it.wav",
-        ),
-        ja: (
-            "ja",
-            "ninja",
-            "sumāto_shōmei",
-            "色変更",
-            HashMap::from([("色", "オレンジ")]),
-            "ninja-sumāto-shōmei_ja.wav",
-        ),
-        ko: (
-            "ko",
-            "koppulso",
-            "seumateu_jomyeong",
-            "changeColor",
-            HashMap::from([("color", "파란색")]),
-            "koppulso-seumateu-jomyeong_ko.wav",
-        ),
-        pt: (
-            "pt",
-            "abacaxi",
-            "luz_inteligente",
-            "ligueLuz",
-            HashMap::from([("lugar", "cozinha")]),
-            "abaxi-luz_pt.wav",
-        ),
+    #[test]
+    fn test_parameters() {
+        let test_json: Value = load_test_data();
+
+        for t in test_json["tests"]["parameters"].as_array().unwrap() {
+            let language = t["language"].as_str().unwrap();
+            let keyword = t["wakeword"].as_str().unwrap();
+            let context = t["context_name"].as_str().unwrap();
+            let audio_file_name = t["audio_file"].as_str().unwrap();
+            let intent = t["inference"]["intent"].as_str().unwrap();
+            let slots_json = t["inference"]["slots"].as_object().unwrap();
+            let mut slots = HashMap::new();
+            slots_json.iter().for_each(|(key, value)| {
+                slots.insert(key.to_string(), String::from(value.as_str().unwrap()));
+            });
+
+            run_picovoice_test(language, keyword, context, intent, slots, audio_file_name);
+        }
     }
 
     fn do_test<W: FnMut(), I: FnMut(RhinoInference)>(
@@ -254,7 +269,7 @@ mod tests {
         let frame_length_bytes = picovoice.frame_length() as usize * i16_size;
 
         let mut frame_buffer = vec![0u8; frame_length_bytes];
-        while let Ok(_) = reader.read_exact(&mut frame_buffer) {
+        while reader.read_exact(&mut frame_buffer).is_ok() {
             let frame_samples: Vec<i16> = frame_buffer
                 .chunks(i16_size)
                 .map(|i16_slice| {

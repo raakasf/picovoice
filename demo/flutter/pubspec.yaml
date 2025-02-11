@@ -6,22 +6,32 @@ publish_to: 'none'
 version: 1.0.0
 
 environment:
-  sdk: ">=2.14.0 <3.0.0"
-  flutter: ">=2.8.1"
+  sdk: ">=2.18.0 <4.0.0"
+  flutter: ">=3.3.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  
+
   path_provider: ^2.0.9
-  picovoice_flutter: "^2.1.6"
+  picovoice_flutter: 3.0.4
+
+dev_dependencies:
+  integration_test:
+    sdk: flutter
+  lints: ^1.0.1
 
 flutter:
-  assets:
-    - assets/contexts/android/smart_lighting_android.rhn
-    - assets/contexts/ios/smart_lighting_ios.rhn
-    - assets/keyword_files/android/picovoice_android.ppn
-    - assets/keyword_files/ios/picovoice_ios.ppn
   uses-material-design: true
-dev_dependencies: 
-  lints: ^1.0.1
+  assets:
+    - assets/
+    - assets/contexts/android/
+    - assets/contexts/ios/
+    - assets/keywords/android/
+    - assets/keywords/ios/
+    - assets/models/
+    - assets/test_resources/
+    - assets/test_resources/audio_samples/
+    - assets/test_resources/context_files/
+    - assets/test_resources/keyword_files/
+    - assets/test_resources/model_files/

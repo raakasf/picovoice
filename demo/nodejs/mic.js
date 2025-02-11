@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 //
-// Copyright 2020-2022 Picovoice Inc.
+// Copyright 2020-2023 Picovoice Inc.
 //
 // You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
 // file accompanying this source.
@@ -16,7 +16,7 @@ const path = require("path");
 const { program } = require("commander");
 const { Picovoice } = require("@picovoice/picovoice-node");
 const { PicovoiceInvalidArgumentError } = require("@picovoice/picovoice-node/dist/errors");
-const PvRecorder = require("@picovoice/pvrecorder-node");
+const { PvRecorder } = require("@picovoice/pvrecorder-node");
 
 const {
   BuiltinKeyword,
@@ -24,7 +24,7 @@ const {
 } = require("@picovoice/porcupine-node");
 
 program
-  .requiredOption(
+  .option(
     "-a, --access_key <string>",
     "AccessKey obtain from the Picovoice Console (https://console.picovoice.ai/)"
   )
@@ -112,7 +112,7 @@ async function micDemo() {
   let friendlyKeywordName;
 
   if (showAudioDevicesDefined) {
-    const devices = PvRecorder.getAudioDevices();
+    const devices = PvRecorder.getAvailableDevices();
     for (let i = 0; i < devices.length; i++) {
       console.log(`index: ${i}, device name: ${devices[i]}`);
     }
@@ -124,7 +124,7 @@ async function micDemo() {
     (!keywordPathsDefined && !builtinKeywordsDefined)
   ) {
     console.error(
-      "One of --keyword_file_paths or --keywords is required: Specify a built-in --keyword (e.g. 'GRASSHOPPER'), or a --keyword_file_path to a .ppn file"
+      "One of --keyword_file_path or --keywords is required: Specify a built-in --keyword (e.g. 'GRASSHOPPER'), or a --keyword_file_path to a .ppn file"
     );
     return;
   }
@@ -201,7 +201,7 @@ async function micDemo() {
 
   const frameLength = handle.frameLength;
 
-  const recorder = new PvRecorder(audioDeviceIndex, frameLength);
+  const recorder = new PvRecorder(frameLength, audioDeviceIndex);
   recorder.start();
 
   console.log(`Using device: ${recorder.getSelectedDevice()}...`);

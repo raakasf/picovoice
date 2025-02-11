@@ -1,5 +1,5 @@
 /*
-  Copyright 2022 Picovoice Inc.
+  Copyright 2022-2023 Picovoice Inc.
 
   You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
   file accompanying this source.
@@ -30,7 +30,7 @@ export function usePicovoice(): {
   contextInfo: string | null;
   isLoaded: boolean;
   isListening: boolean;
-  error: string | null;
+  error: Error | null;
   init: (
     accessKey: string,
     keyword: PorcupineKeyword,
@@ -42,7 +42,7 @@ export function usePicovoice(): {
   start: () => Promise<void>;
   stop: () => Promise<void>;
   release: () => Promise<void>;
-} {
+  } {
   const picovoiceRef = useRef<PicovoiceWorker | null>(null);
   const [wakeWordDetection, setWakeWordDetection] =
     useState<PorcupineDetection | null>(null);
@@ -50,7 +50,7 @@ export function usePicovoice(): {
   const [contextInfo, setContextInfo] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const wakeWordCallback = useCallback(
     (newDetection: PorcupineDetection): void => {
@@ -72,7 +72,7 @@ export function usePicovoice(): {
     []
   );
 
-  const errorCallback = useCallback((newError: string): void => {
+  const errorCallback = useCallback((newError: Error): void => {
     if (newError) {
       setError(newError);
     }
@@ -96,6 +96,7 @@ export function usePicovoice(): {
                 "Use the 'error' state to monitor for errors in the React SDK."
             );
           }
+          PicovoiceWorker.setSdk('react');
           picovoiceRef.current = await PicovoiceWorker.create(
             accessKey,
             keyword,
@@ -111,7 +112,7 @@ export function usePicovoice(): {
           setError(null);
         }
       } catch (e: any) {
-        setError(e.toString());
+        setError(e);
       }
     },
     [wakeWordCallback, inferenceCallback, errorCallback]
@@ -120,7 +121,7 @@ export function usePicovoice(): {
   const start = useCallback(async (): Promise<void> => {
     try {
       if (!picovoiceRef.current) {
-        setError('Picovoice has not been initialized or has been released');
+        setError(new Error('Picovoice has not been initialized or has been released'));
         return;
       }
 
@@ -130,14 +131,14 @@ export function usePicovoice(): {
         setError(null);
       }
     } catch (e: any) {
-      setError(e.toString());
+      setError(e);
     }
   }, [isListening]);
 
   const stop = useCallback(async (): Promise<void> => {
     try {
       if (!picovoiceRef.current) {
-        setError('Picovoice has not been initialized or has been released');
+        setError(new Error('Picovoice has not been initialized or has been released'));
         return;
       }
 
@@ -148,7 +149,7 @@ export function usePicovoice(): {
         setError(null);
       }
     } catch (e: any) {
-      setError(e.toString());
+      setError(e);
     }
   }, [isListening]);
 
@@ -161,7 +162,7 @@ export function usePicovoice(): {
         setIsLoaded(false);
       }
     } catch (e: any) {
-      setError(e.toString());
+      setError(e);
     }
   }, [stop]);
 

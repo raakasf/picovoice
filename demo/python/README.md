@@ -19,8 +19,8 @@ similar to Alexa and Google. But it entirely runs 100% on-device. Picovoice is
 
 ## Compatibility
 
-* Python 3.5+
-* Runs on Linux (x86_64), macOS (x86_64, arm64), Windows (x86_64), Raspberry Pi (all variants), NVIDIA Jetson (Nano), and BeagleBone.
+* Python 3.8+
+* Runs on Linux (x86_64), macOS (x86_64, arm64), Windows (x86_64), and Raspberry Pi (Zero, 3, 4, 5).
 
 ## Installation
 
@@ -47,7 +47,7 @@ using the context defined by the file located at `${PATH_TO_RHINO_CONTEXT_FILE)}
 ```console
 picovoice_demo_file \
 --access_key ${ACCESS_KEY} \
---input_audio_path ${PATH_TO_INPUT_AUDIO_FILE} \
+--wav_path ${PATH_TO_INPUT_AUDIO_FILE} \
 --keyword_path ${PATH_TO_PORCUPINE_KEYWORD_FILE} \
 --context_path ${PATH_TO_RHINO_CONTEXT_FILE)}
 ```

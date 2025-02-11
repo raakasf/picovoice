@@ -28,3 +28,32 @@
 
 ## [2.1.6] - 2022-09-21
 * Update Android libs
+
+## [2.2.0] - 2023-04-12
+* Additional language support added (ar, hi, nl, pl, ru, sv, vn, zh)
+
+## [2.2.1] - 2023-06-02
+* Expose context info through PicovoiceManager
+
+## [2.2.2] - 2023-08-09
+* Update flutter-voice-processor
+
+## [2.2.3] - 2023-08-25
+* Update native packages
+
+## [3.0.0] - 2023-10-25
+* Engine improvements
+* Improved error reporting
+* Added reset function
+
+## [3.0.1] - 2023-11-17
+* Update native packages
+
+## [3.0.2] - 2024-01-15
+* Address locale issue
+
+## [3.0.3] - 2024-02-08
+* Additional gradle plugin build support
+
+## [3.0.4] - 2024-12-06
+* Update native packages

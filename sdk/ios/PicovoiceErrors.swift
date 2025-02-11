@@ -1,5 +1,5 @@
 //
-//  Copyright 2021 Picovoice Inc.
+//  Copyright 2021-2024 Picovoice Inc.
 //  You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
 //  file accompanying this source.
 //  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
@@ -7,13 +7,15 @@
 //  specific language governing permissions and limitations under the License.
 //
 
-public class PicovoiceError : LocalizedError {
-    private let message: String;
-    
+import Foundation
+
+public class PicovoiceError: LocalizedError {
+    private let message: String
+
     public init (_ message: String) {
         self.message = message
     }
-    
+
     public var errorDescription: String? {
         return message
     }
@@ -25,24 +27,24 @@ public class PicovoiceError : LocalizedError {
     }
 }
 
-public class PicovoiceMemoryError : PicovoiceError {}
+public class PicovoiceMemoryError: PicovoiceError {}
 
-public class PicovoiceIOError : PicovoiceError {}
+public class PicovoiceIOError: PicovoiceError {}
 
-public class PicovoiceInvalidArgumentError : PicovoiceError {}
+public class PicovoiceInvalidArgumentError: PicovoiceError {}
 
-public class PicovoiceStopIterationError : PicovoiceError {}
+public class PicovoiceStopIterationError: PicovoiceError {}
 
-public class PicovoiceKeyError : PicovoiceError {}
+public class PicovoiceKeyError: PicovoiceError {}
 
-public class PicovoiceInvalidStateError : PicovoiceError {}
+public class PicovoiceInvalidStateError: PicovoiceError {}
 
-public class PicovoiceRuntimeError : PicovoiceError {}
+public class PicovoiceRuntimeError: PicovoiceError {}
 
-public class PicovoiceActivationError : PicovoiceError {}
+public class PicovoiceActivationError: PicovoiceError {}
 
-public class PicovoiceActivationLimitError : PicovoiceError {}
+public class PicovoiceActivationLimitError: PicovoiceError {}
 
-public class PicovoiceActivationThrottledError : PicovoiceError {}
+public class PicovoiceActivationThrottledError: PicovoiceError {}
 
-public class PicovoiceActivationRefusedError : PicovoiceError {}
+public class PicovoiceActivationRefusedError: PicovoiceError {}

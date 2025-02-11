@@ -1,5 +1,5 @@
 /*
-    Copyright 2018-2021 Picovoice Inc.
+    Copyright 2018-2023 Picovoice Inc.
 
     You may not use this file except in compliance with the license. A copy of the license is
     located in the "LICENSE" file accompanying this source.
@@ -31,7 +31,7 @@ import java.util.Map;
 import ai.picovoice.picovoice.*;
 
 public class PicovoiceService extends Service {
-    private final String ACCESS_KEY = "${YOUR_ACCESS_KEY_HERE}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
+    private static final String ACCESS_KEY = "${YOUR_ACCESS_KEY_HERE}"; // AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)
 
     private static final String CHANNEL_ID = "PicovoiceServiceChannel";
 
@@ -106,11 +106,7 @@ public class PicovoiceService extends Service {
             picovoiceManager.start();
             started = true;
         } catch (PicovoiceInvalidArgumentException e) {
-            onPicovoiceError(
-                    String.format(
-                            "%s\nEnsure your AccessKey '%s' is a valid access key.",
-                            e.getLocalizedMessage(),
-                            ACCESS_KEY));
+            onPicovoiceError(e.getMessage());
         } catch (PicovoiceActivationException e) {
             onPicovoiceError("AccessKey activation error");
         } catch (PicovoiceActivationLimitException e) {
@@ -120,7 +116,7 @@ public class PicovoiceService extends Service {
         } catch (PicovoiceActivationThrottledException e) {
             onPicovoiceError("AccessKey has been throttled");
         } catch (PicovoiceException e) {
-            onPicovoiceError("Failed to initialize Picovoice " + e.getMessage());
+            onPicovoiceError("Failed to initialize Picovoice: " + e.getMessage());
         }
 
         Notification notification = started ?

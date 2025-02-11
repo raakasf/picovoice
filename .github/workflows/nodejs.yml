@@ -5,19 +5,23 @@ on:
   push:
     branches: [ master ]
     paths:
+      - '.github/workflows/nodejs.yml'
       - 'sdk/nodejs/**'
       - '!sdk/nodejs/README.md'
+      - 'resources/audio_samples/**'
       - 'resources/porcupine'
       - 'resources/rhino'
-      - '.github/workflows/nodejs.yml'
+      - 'resources/.test/**'
   pull_request:
-    branches: [ master ]
+    branches: [ master, 'v[0-9]+.[0-9]+' ]
     paths:
+      - '.github/workflows/nodejs.yml'
       - 'sdk/nodejs/**'
       - '!sdk/nodejs/README.md'
+      - 'resources/audio_samples/**'
       - 'resources/porcupine'
       - 'resources/rhino'
-      - '.github/workflows/nodejs.yml'
+      - 'resources/.test/**'
 
 defaults:
   run:
@@ -29,42 +33,37 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        node-version: [14.x, 16.x]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [16.x, 18.x, 20.x]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v2
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-
-    - name: Pre-build dependencies
-      run: npm install yarn
 
     - name: Install dependencies
       run: yarn install
 
     - name: Test
-      run: yarn test  --access_key=${{secrets.PV_VALID_ACCESS_KEY}}
+      run: yarn test --access_key=${{secrets.PV_VALID_ACCESS_KEY}}
 
   build-self-hosted:
     runs-on: ${{ matrix.machine }}
 
     strategy:
+      fail-fast: false
       matrix:
-        machine: [rpi2, rpi3-32, rpi3-64, rpi4-32, rpi4-64, jetson, beaglebone]
+        machine: [rpi3-32, rpi3-64, rpi4-32, rpi4-64, rpi5-64]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
-
-    - name: Pre-build dependencies
-      run: npm install --global yarn
 
     - name: Install dependencies
       run: yarn install

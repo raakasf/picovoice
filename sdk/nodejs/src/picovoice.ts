@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2022 Picovoice Inc.
+// Copyright 2020-2023 Picovoice Inc.
 //
 // You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
 // file accompanying this source.
@@ -8,12 +8,12 @@
 // an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 //
-"use strict";
+'use strict';
 
-import { Porcupine } from "@picovoice/porcupine-node";
-import { Rhino, RhinoInference } from "@picovoice/rhino-node";
+import { Porcupine, PorcupineErrors } from '@picovoice/porcupine-node';
+import { Rhino, RhinoInference, RhinoErrors } from '@picovoice/rhino-node';
 
-import { PicovoiceInvalidArgumentError, PicovoiceInvalidStateError } from "./errors";
+import * as PicovoiceErrors from './errors';
 
 export type WakeWordCallback = (keyword: number) => void;
 export type InferenceCallback = (inference: RhinoInference) => void;
@@ -76,11 +76,13 @@ export default class Picovoice {
       accessKey === undefined ||
       accessKey.length === 0
     ) {
-      throw new PicovoiceInvalidArgumentError(`No AccessKey provided to Picovoice`);
+      throw new PicovoiceErrors.PicovoiceInvalidArgumentError(
+        `No AccessKey provided to Picovoice`
+      );
     }
 
     if (!(wakeWordCallback instanceof Function)) {
-      throw new PicovoiceInvalidArgumentError(
+      throw new PicovoiceErrors.PicovoiceInvalidArgumentError(
         "Parameter 'wakeWordCallback' is not a function"
       );
     }
@@ -88,34 +90,38 @@ export default class Picovoice {
     this.wakeWordCallback = wakeWordCallback;
 
     if (!(inferenceCallback instanceof Function)) {
-      throw new PicovoiceInvalidArgumentError(
+      throw new PicovoiceErrors.PicovoiceInvalidArgumentError(
         "Parameter 'inferenceCallback' is not a function"
       );
     }
 
     this.inferenceCallback = inferenceCallback;
 
-    this.porcupine = new Porcupine(
-      accessKey,
-      [keywordPath],
-      [porcupineSensitivity],
-      porcupineModelPath,
-      porcupineLibraryPath
-    );
+    try {
+      this.porcupine = new Porcupine(
+        accessKey,
+        [keywordPath],
+        [porcupineSensitivity],
+        porcupineModelPath,
+        porcupineLibraryPath
+      );
 
-    this.rhino = new Rhino(
-      accessKey,
-      contextPath,
-      rhinoSensitivity,
-      endpointDurationSec,
-      requireEndpoint,
-      rhinoModelPath,
-      rhinoLibraryPath
-    );
+      this.rhino = new Rhino(
+        accessKey,
+        contextPath,
+        rhinoSensitivity,
+        endpointDurationSec,
+        requireEndpoint,
+        rhinoModelPath,
+        rhinoLibraryPath
+      );
+    } catch (error: any) {
+      throw this.mapToPicovoiceError(error);
+    }
 
     this._frameLength = 512;
     this._sampleRate = 16000;
-    this._version = "2.1.0";
+    this._version = '3.0.0';
 
     this._porcupineVersion = this.porcupine.version;
     this._rhinoVersion = this.rhino.version;
@@ -172,35 +178,58 @@ export default class Picovoice {
    *
    * @param {Array} frame 16-bit integers of 16kHz linear PCM mono audio.
    * The specific array length is obtained from Rhino via the frameLength field.
-   * @returns {boolean} true when Rhino has concluded processing audio and determined the intent (or that the intent was not understood), false otherwise.
    */
-  process(frame: Int16Array) {
+  process(frame: Int16Array): void {
     if (this.porcupine === null || this.rhino === null) {
-      throw new PicovoiceInvalidStateError(
-        "Attempting to process but resources have been released."
+      throw new PicovoiceErrors.PicovoiceInvalidStateError(
+        'Attempting to process but resources have been released.'
       );
     }
-    if (!this.isWakeWordDetected) {
-      const keywordIndex = this.porcupine.process(frame);
 
-      if (keywordIndex !== -1) {
-        this.isWakeWordDetected = true;
-        this.wakeWordCallback(keywordIndex);
-      }
-    } else {
-      const isFinalized = this.rhino.process(frame);
+    try {
+      if (!this.isWakeWordDetected) {
+        const keywordIndex = this.porcupine.process(frame);
 
-      if (isFinalized) {
-        this.isWakeWordDetected = false;
-        this.inferenceCallback(this.rhino.getInference());
+        if (keywordIndex !== -1) {
+          this.isWakeWordDetected = true;
+          this.wakeWordCallback(keywordIndex);
+        }
+      } else {
+        const isFinalized = this.rhino.process(frame);
+
+        if (isFinalized) {
+          this.isWakeWordDetected = false;
+          this.inferenceCallback(this.rhino.getInference());
+        }
       }
+    } catch (error: any) {
+      throw this.mapToPicovoiceError(error);
+    }
+  }
+
+  /**
+   * Resets the internal state of Picovoice. It should be called before processing a new stream of audio
+   * or when Picovoice was stopped while processing a stream of audio.
+   */
+  reset(): void {
+    if (this.porcupine === null || this.rhino === null) {
+      throw new PicovoiceErrors.PicovoiceInvalidStateError(
+        'Attempting to reset but resources have been released.'
+      );
+    }
+
+    try {
+      this.isWakeWordDetected = false;
+      this.rhino.reset();
+    } catch (error: any) {
+      throw this.mapToPicovoiceError(error);
     }
   }
 
   /**
    * Release the resources acquired by Picovoice (via Porcupine and Rhino engines).
    */
-  release() {
+  release(): void {
     if (this.porcupine !== null) {
       this.porcupine.release();
       this.porcupine = null;
@@ -209,5 +238,32 @@ export default class Picovoice {
       this.rhino.release();
       this.rhino = null;
     }
+  }
+
+  private mapToPicovoiceError(e: PorcupineErrors.PorcupineError | RhinoErrors.RhinoError): PicovoiceErrors.PicovoiceError {
+    if (e instanceof PorcupineErrors.PorcupineOutOfMemoryError || e instanceof RhinoErrors.RhinoOutOfMemoryError) {
+      return new PicovoiceErrors.PicovoiceOutOfMemoryError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineIOError || e instanceof RhinoErrors.RhinoIOError) {
+      return new PicovoiceErrors.PicovoiceIOError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineInvalidArgumentError || e instanceof RhinoErrors.RhinoInvalidArgumentError) {
+      return new PicovoiceErrors.PicovoiceInvalidArgumentError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineStopIterationError || e instanceof RhinoErrors.RhinoStopIterationError) {
+      return new PicovoiceErrors.PicovoiceStopIterationError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineKeyError || e instanceof RhinoErrors.RhinoKeyError) {
+      return new PicovoiceErrors.PicovoiceKeyError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineInvalidStateError || e instanceof RhinoErrors.RhinoInvalidStateError) {
+      return new PicovoiceErrors.PicovoiceInvalidStateError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineRuntimeError || e instanceof RhinoErrors.RhinoRuntimeError) {
+      return new PicovoiceErrors.PicovoiceRuntimeError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineActivationError || e instanceof RhinoErrors.RhinoActivationError) {
+      return new PicovoiceErrors.PicovoiceActivationError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineActivationLimitReachedError || e instanceof RhinoErrors.RhinoActivationLimitReachedError) {
+      return new PicovoiceErrors.PicovoiceActivationLimitReachedError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineActivationThrottledError || e instanceof RhinoErrors.RhinoActivationThrottledError) {
+      return new PicovoiceErrors.PicovoiceActivationThrottledError(e.message);
+    } else if (e instanceof PorcupineErrors.PorcupineActivationRefusedError || e instanceof RhinoErrors.RhinoActivationRefusedError) {
+      return new PicovoiceErrors.PicovoiceActivationRefusedError(e.message);
+    }
+    return new PicovoiceErrors.PicovoiceError(e.message);
   }
 }

@@ -1,5 +1,5 @@
 /*
-  Copyright 2022 Picovoice Inc.
+  Copyright 2022-2023 Picovoice Inc.
 
   You may not use this file except in compliance with the license. A copy of the license is located in the "LICENSE"
   file accompanying this source.
@@ -17,6 +17,7 @@ import {
   PicovoiceWorkerProcessResponse,
   PicovoiceWorkerReleaseResponse,
   PicovoiceWorkerResetResponse,
+  PvStatus,
 } from './types';
 
 import {
@@ -32,6 +33,7 @@ import {
 } from '@picovoice/rhino-web';
 
 import { loadPicovoiceArgs } from './utils';
+import { pvStatusToException } from './picovoice_errors';
 
 export class PicovoiceWorker {
   private readonly _worker: Worker;
@@ -39,6 +41,7 @@ export class PicovoiceWorker {
   private readonly _frameLength: number;
   private readonly _sampleRate: number;
   private readonly _contextInfo: string;
+  private static _sdk: string = 'web';
 
   private constructor(
     worker: Worker,
@@ -88,6 +91,11 @@ export class PicovoiceWorker {
   get worker(): Worker {
     return this._worker;
   }
+
+  public static setSdk(sdk: string): void {
+    PicovoiceWorker._sdk = sdk;
+  }
+
   /**
    * Creates an instance of PicovoiceWorker.
    *
@@ -151,17 +159,18 @@ export class PicovoiceWorker {
                     break;
                   case 'failed':
                   case 'error':
+                    const error = pvStatusToException(ev.data.status, ev.data.message);
                     if (processErrorCallback) {
-                      processErrorCallback(ev.data.message);
+                      processErrorCallback(error);
                     } else {
                       // eslint-disable-next-line no-console
-                      console.error(ev.data.message);
+                      console.error(error);
                     }
                     break;
                   default:
                     if (processErrorCallback) {
                       processErrorCallback(
-                        `Unrecognized command: ${event.data.command}`
+                        pvStatusToException(PvStatus.RUNTIME_ERROR, `Unrecognized command: ${event.data.command}`)
                       );
                     } else {
                       // eslint-disable-next-line no-console
@@ -183,11 +192,12 @@ export class PicovoiceWorker {
               break;
             case 'failed':
             case 'error':
-              reject(event.data.message);
+              const error = pvStatusToException(event.data.status, event.data.message);
+              reject(error);
               break;
             default:
               // @ts-ignore
-              reject(`Unrecognized command: ${event.data.command}`);
+              reject(pvStatusToException(PvStatus.RUNTIME_ERROR, `Unrecognized command: ${event.data.command}`));
           }
         };
       }
@@ -203,6 +213,7 @@ export class PicovoiceWorker {
     worker.postMessage({
       command: 'init',
       accessKey: accessKey,
+      sdk: this._sdk,
       options: rest,
       ...picovoiceArgs,
     });
@@ -249,11 +260,12 @@ export class PicovoiceWorker {
             break;
           case 'failed':
           case 'error':
-            reject(event.data.message);
+            const error = pvStatusToException(event.data.status, event.data.message);
+            reject(error);
             break;
           default:
             // @ts-ignore
-            reject(`Unrecognized command: ${event.data.command}`);
+            reject(pvStatusToException(PvStatus.RUNTIME_ERROR, `Unrecognized command: ${event.data.command}`));
         }
       };
     });
